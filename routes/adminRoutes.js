@@ -5,7 +5,7 @@ const Language = require('../models/Language');
 
 // Middleware placeholder — replace with your real auth middleware later
 function requireAdmin(req, res, next) {
-  // Assume req.user is set by JWT middleware
+  // JWT middleware
   if (req.user?.role !== 'Admin') {
     return res.status(403).json({ error: 'Admin rights required' });
   }
