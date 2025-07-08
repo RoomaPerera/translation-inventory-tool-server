@@ -1,3 +1,4 @@
+//authController
 // handles user authentication, registration, and password workflow
 
 const User = require('../models/User');
@@ -37,6 +38,8 @@ const loginUser = async (req, res) => {
     const { email, password } = req.body;
     try {
         const user = await User.login(email, password);
+        user.lastActivity = Date.now();
+        await user.save();
         const token = createToken({ id: user._id, role: user.role });
         res.status(200).json({ email, token });
     } catch (error) {
@@ -46,7 +49,7 @@ const loginUser = async (req, res) => {
 
 /**
  * @route   POST /api/auth/resetPassword
- * @desc    Send short-lived reset link email
+ * @desc    Send short-lived reset link email (forgot password)
  */
 const resetPassword = async (req, res) => {
     const { email } = req.body;
@@ -74,7 +77,7 @@ const resetPassword = async (req, res) => {
 
 /**
  * @route   POST /api/auth/setNewPassword
- * @desc    Verify reset token and update password
+ * @desc    Verify reset token and update password (forgot password)
  */
 const setNewPassword = async (req, res) => {
     const { token, newPassword } = req.body;

@@ -1,3 +1,4 @@
+//translationController
 const Translation = require('../models/Translation');
 
 // Add a Translation

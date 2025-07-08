@@ -22,7 +22,7 @@ wss.on('connection', setupWSConnection);
 
 //connect to db
 connectDB().then(() => {
-    const server = app.listen(port, () => {
+    server.listen(port, () => {
         console.log(`Server running on port ${port}`);
     });
     process.once('SIGUSR2', () => {
@@ -31,5 +31,4 @@ connectDB().then(() => {
     process.on('SIGINT', () => {
         server.close(() => process.exit(0));
     });
-    server.listen(port, () => console.log(`Server on ${port}`));
 });

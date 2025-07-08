@@ -1,3 +1,4 @@
+//TranslationModel
 //const { text } = require("express");
 const { default: mongoose } = require("mongoose");
 
@@ -34,6 +35,7 @@ translationSchema.methods.addRevision = async function (newText, userId, maxRevi
         this.revisions = this.revisions.slice(0, maxRevisions);
     }
     this.translatedText = newText;
+    this.updatedAt = Date.now();
     return this.save();
 }
 

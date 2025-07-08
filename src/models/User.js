@@ -36,6 +36,10 @@ const userSchema = new Schema({
     deletedAt: {
         type: Date,
         default: null
+    },
+    lastActivity: {
+        type: Date,
+        default: Date.now
     }
 }, { timestamps: true })
 
@@ -55,6 +59,10 @@ userSchema.statics.register = async function (userName, email, password, role, l
     const exists = await this.findOne({ email })
     if (exists) {
         throw Error('Email already in use');
+    }
+    const existingUserName = await this.findOne({ userName })
+    if (existingUserName) {
+        throw Error('Username already in use');
     }
     const salt = await bcrypt.genSalt(10);
     const hash = await bcrypt.hash(password, salt);

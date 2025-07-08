@@ -1,22 +1,31 @@
 const Translation = require('../models/Translation');
 const editLog = require('../models/editLog');
+const { verifyToken } = require('../utils/jwt');
 
 module.exports = function (io) {
+    io.engine.on('connection_error', (err) => {
+        console.log('Engine connection_error:', err);
+    });
     // Authentication middleware for sockets
-    const verifyToken = require('../utils/jwt');
     io.use((socket, next) => {
         const token = socket.handshake.auth.token;
+        if (!token) {
+            console.log('Socket auth failed: no token provided');
+            return next(new Error('Authentication Error: Token required'));
+        }
         try {
-            const { id, role } = verifyToken(token);
-            socket.user = { id, role };
+            const { id, role, exp } = verifyToken(token);
+            socket.user = { id, role, exp };
             next();
         } catch (err) {
-            next(new Error('Authentication Error'));
+            console.log('Socket auth failed: ', err.message);
+            return next(new Error('Authentication Error: ' + err.message));
         }
     });
 
     // handling each new socket connection
     io.on('connection', socket => {
+        console.log(`Socket connected: user ${socket.user.id}, role ${socket.user.role}`);
         socket.on('joinTranslation', translationId => {
             socket.join(translationId);
             // audit log for join
@@ -25,7 +34,7 @@ module.exports = function (io) {
                 userId: socket.user.id,
                 action: 'join',
                 payload: {},
-            });
+            }).catch(err => console.log('editing log join error: ', err));
             socket.to(translationId).emit('userJoined', {
                 userId: socket.user.id,
                 joinedAt: new Date()
@@ -39,7 +48,7 @@ module.exports = function (io) {
                 user: socket.user.id,
                 action: 'leave',
                 payload: {}
-            });
+            }).catch(err => console.log('editing log leave error: ', err));
             socket.to(translationId).emit('userLeft', {
                 userId: socket.user.id,
                 leftAt: new Date()
@@ -47,7 +56,7 @@ module.exports = function (io) {
         });
 
         // handling edits
-        socket.on('editTranslation', async ({ translationId, nextText }) => {
+        socket.on('editTranslation', async ({ translationId, newText }) => {
             try {
                 const t = await Translation.findById(translationId);
                 if (!t) return;
@@ -68,6 +77,9 @@ module.exports = function (io) {
             } catch (err) {
                 console.log('Edit error:', err);
             }
+        });
+        socket.on('disconnect', reason => {
+            console.log(`Socket disconnected: user ${socket.user.id}, reason: ${reason}`);
         });
     });
 }

@@ -6,7 +6,7 @@ const User = require('./src/models/User');
 async function startCronJobs() {
     await connectDB();
     cron.schedule('0 2 * * *', async () => {
-        const cutoff = new Date(Date.now() - 30 * 24 * 60 * 60 * 100);
+        const cutoff = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
         const result = await User.deleteMany({
             deletedAt: { $lte: cutoff }
         });
