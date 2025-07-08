@@ -1,26 +1,9 @@
-const express = require('express')
-const cors = require('cors')
+require('dotenv').config();
+require('./cron');
 
-const connectDB = require('./config/db');
-const { port } = require('./config');
-
-const auth = require('./routes/authRoutes')
-const userRoutes = require('./routes/userRoutes')
-
-//express app
-const app = express()
-
-//middleware
-app.use(cors());
-app.use(express.json())
-app.use((req, res, next) => {
-    console.log(req.path, req.method)
-    next()
-})
-
-//routes
-app.use('/api/auth', auth)
-app.use('/api/user', userRoutes)
+const connectDB = require('./src/config/db');
+const { port } = require('./src/config/config');
+const app = require('./src/app');
 
 //connect to db
 connectDB().then(() => {
