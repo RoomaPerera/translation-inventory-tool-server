@@ -10,6 +10,8 @@ const auth = require('./routes/authRoutes');
 const userRoutes = require('./routes/userRoutes');
 const projectRoutes = require('./routes/projectRoutes');
 const languageRoutes = require('./routes/languageRoutes');
+const adminRoutes    = require('./routes/adminRoutes'); 
+const developerRoutes = require('./routes/developerRoutes'); 
 
 // Express app
 const app = express();
@@ -43,6 +45,8 @@ app.use('/api/auth', auth);
 app.use('/api/users', userRoutes);
 app.use('/api/projects', projectRoutes);
 app.use('/api/languages', languageRoutes);
+app.use('/api/admin', adminRoutes);  
+app.use('/api/developer', developerRoutes);    
 
 // Error handling middleware
 app.use((err, req, res, next) => {
