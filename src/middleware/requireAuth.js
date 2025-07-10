@@ -1,4 +1,5 @@
 const { verifyToken } = require('../utils/jwt');
+const jwt = require('jsonwebtoken')
 const User = require('../models/User');
 
 const requireAuth = async (req, res, next) => {
