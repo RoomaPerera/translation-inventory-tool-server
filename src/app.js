@@ -10,6 +10,7 @@ const app = express();
 //middleware
 app.use(cors());
 app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 app.use((req, res, next) => {
     console.log(req.path, req.method);
     next();
@@ -18,6 +19,7 @@ app.use((req, res, next) => {
 //routes
 app.use('/api/auth', authRoutes);
 app.use('/api/user', userRoutes);
+app.use('/api', require('./routes/emailRoutes'));
 
 
 module.exports = app;

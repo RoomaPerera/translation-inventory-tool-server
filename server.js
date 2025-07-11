@@ -7,9 +7,9 @@ const app = require('./src/app');
 
 //connect to db
 connectDB().then(() => {
-    const server = app.listen(port, () => {
-        console.log(`Server running on port ${port}`);
-    });
+    const server = app.listen(5000, () => {
+  console.log('Server is running on port 5000');
+});
     process.once('SIGUSR2', () => {
         server.close(() => process.kill(process.pid, 'SIGUSR2'));
     });
