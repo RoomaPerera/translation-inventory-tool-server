@@ -4,7 +4,7 @@ const Translation = require('../models/Translation');
 exports.addTranslation = async (req, res, next) => {
   try {
     const { translationKey, language, translatedText, product, createdBy, projectId } = req.body;
-    const newTranslation = new Translation({ translationKey, language, translatedText, product, createdBy, projectId });
+    const newTranslation = new Translation({ translationKey, language, translatedText, product, context, createdBy, projectId });
     await newTranslation.save();
     res.status(201).json(newTranslation);
   } catch (error) {
@@ -15,12 +15,13 @@ exports.addTranslation = async (req, res, next) => {
 // Update a Translation (edit text or status)
 exports.updateTranslation = async (req, res, next) => {
   try {
-    const { translatedText, status } = req.body;
+    const { translatedText, status, context } = req.body;
     const updatedTranslation = await Translation.findByIdAndUpdate(
       req.params.id,
       {
         ...(translatedText && { translatedText }),
         ...(status && { status }),
+        ...(context && { context }),
         updatedAt: Date.now()
       },
       { new: true }

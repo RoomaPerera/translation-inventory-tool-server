@@ -6,6 +6,7 @@ const translationSchema = new mongoose.Schema({
   translatedText: { type: String, required: true },
   product: { type: String, required: true },
   projectId: { type: mongoose.Schema.Types.ObjectId, ref: 'Project', required: true },
+  context: { type: String },
   status: { type: String, enum: ['pending', 'completed', 'approved'], default: 'pending' },
   createdBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
   createdAt: { type: Date, default: Date.now },
