@@ -3,16 +3,16 @@ const router  = express.Router();
 const User    = require('../models/User');      
 const Language = require('../models/Language'); 
 
-// Middleware placeholder — replace with your real auth middleware later
-function requireAdmin(req, res, next) {
-  // JWT middleware
-  if (req.user?.role !== 'Admin') {
-    return res.status(403).json({ error: 'Admin rights required' });
-  }
-  next();
-}
+// // Middleware placeholder — replace with your real auth middleware later
+// function requireAdmin(req, res, next) {
+//   // JWT middleware
+//   if (req.user?.role !== 'Admin') {
+//     return res.status(403).json({ error: 'Admin rights required' });
+//   }
+//   next();
+// }
 
-router.post('/users/:userId/languages', requireAdmin, async (req, res) => {
+router.post('/users/:userId/languages', async (req, res) => {
   const { userId }      = req.params;
   const { languages }   = req.body;        
 
