@@ -3,6 +3,8 @@ const router = express.Router();
 const Translation = require('../models/Translation');
 const Project = require('../models/Project');
 const { Parser } = require('json2csv');
+const multer = require('multer');
+const fs = require('fs');
 
 // GET: Generate and download translation files as ZIP
 router.get('/projects/:projectId/translations/generate', async (req, res) => {
@@ -48,5 +50,58 @@ router.get('/projects/:projectId/translations/generate', async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 });
+
+
+// Configure multer for JSON upload
+const upload = multer({ dest: 'uploads/' }); // store in temp folder
+
+// POST: Upload and replace translations from a JSON file
+router.post('/projects/:projectId/translations/upload', upload.single('file'), async (req, res) => {
+  const { projectId } = req.params;
+  const filePath = req.file?.path;
+
+  if (!filePath) {
+    return res.status(400).json({ error: 'File not uploaded' });
+  }
+
+  try {
+    const rawData = fs.readFileSync(filePath, 'utf-8');
+    const jsonData = JSON.parse(rawData);
+
+    let upsertCount = 0;
+
+    for (const language of Object.keys(jsonData)) {
+      const translations = jsonData[language];
+
+      for (const key of Object.keys(translations)) {
+        const translatedText = translations[key];
+
+        // Upsert (update if exists, insert if not)
+        await Translation.findOneAndUpdate(
+          { projectId, translationKey: key, language },
+          {
+            translationKey: key,
+            language,
+            translatedText,
+            product: req.body.product || 'Unknown Project',
+            projectId,
+            status: 'pending'
+          },
+          { upsert: true, new: true }
+        );
+
+        upsertCount++;
+      }
+    }
+
+    fs.unlinkSync(filePath); // cleanup temp file
+    res.status(200).json({ message: `${upsertCount} translations processed successfully.` });
+
+  } catch (error) {
+    console.error('Upload error:', error);
+    res.status(500).json({ error: 'Failed to process file', details: error.message });
+  }
+});
+
 
 module.exports = router;
