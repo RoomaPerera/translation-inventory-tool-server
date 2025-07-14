@@ -3,6 +3,7 @@ const cors = require('cors');
 
 const authRoutes = require('./routes/authRoutes');
 const userRoutes = require('./routes/userRoutes');
+const fuzzyRoutes = require('./routes/fuzzyRoutes');
 
 //express app
 const app = express();
@@ -18,6 +19,7 @@ app.use((req, res, next) => {
 //routes
 app.use('/api/auth', authRoutes);
 app.use('/api/user', userRoutes);
+app.use('/api', fuzzyRoutes); 
 
 
 module.exports = app;
