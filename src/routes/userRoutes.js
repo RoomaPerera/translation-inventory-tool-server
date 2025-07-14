@@ -6,9 +6,8 @@ const {
     filterUserList,
     deleteUser,
     getUserList,
-    getRejectedUsers,
-    restoreRejectedUser,
-    deleteRejectedUsers
+    deleteRejectedUsers,
+    getPendingUsers
 } = require('../controllers/userController');
 
 const requireAuth = require('../middleware/requireAuth');
@@ -23,9 +22,8 @@ adminRouter.put('/approveUser', approveUser);
 adminRouter.delete('/deleteUser/:id', deleteUser);
 adminRouter.get('/getUserList', getUserList);
 adminRouter.get('/filterUserList/:role', filterUserList);
-adminRouter.get('/getRejectedUsers', getRejectedUsers);
-adminRouter.put('/restoreRejectedUser/:id', restoreRejectedUser);
 adminRouter.delete('/deleteRejectedUsers', deleteRejectedUsers);
+adminRouter.get('/getPendingUsers', getPendingUsers);
 
 router.use('/', requireRole('Admin'), adminRouter);
 
