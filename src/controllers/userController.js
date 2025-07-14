@@ -25,8 +25,8 @@ const approveUser = async (req, res) => {
     if (!user) {
         return res.status(404).json({ error: 'User not found' });
     }
-    console.log('🔍 userId received =', id);
-    console.log('✅ Valid ObjectId =', mongoose.Types.ObjectId.isValid(id));
+    console.log('userId received =', id);
+    console.log('Valid ObjectId =', mongoose.Types.ObjectId.isValid(id));
     if (!mongoose.Types.ObjectId.isValid(id)) {
         return res.status(400).json({ error: 'Invalid User ID' });
     }
