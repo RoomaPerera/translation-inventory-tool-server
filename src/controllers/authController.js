@@ -24,7 +24,7 @@ const ALLOWED_SELF_ROLES = ['Translator', 'Developer', 'Admin'];
  * @desc    Register a new user (pending approval)
  */
 const registerUser = async (req, res) => {
-    console.log('🔍 [registerUser] req.body =', req.body);
+    console.log('[registerUser] req.body =', req.body);
     const { userName, email, password, role, languages } = req.body;
     if (!ALLOWED_SELF_ROLES.includes(role)) {
         return res.status(400).json({ error: `You may only self‑register as: ${ALLOWED_SELF_ROLES.join(', ')}` });
