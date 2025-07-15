@@ -1,7 +1,8 @@
 require('dotenv').config();
 
+const mongoose = require('mongoose');
 const connectDB = require('./src/config/db');
-const { port } = require('./src/config/config');
+const { port, mongoURI, jwtSecret } = require('./src/config/config'); 
 const app = require('./src/app');
 
 // Connect to DB and start server
@@ -36,15 +37,15 @@ connectDB()
 
 // Log MongoDB connection info
 console.log('Connecting to MongoDB...');
-if (process.env.MONGO_URI) {
-  const sanitizedURI = process.env.MONGO_URI.replace(/mongodb(\+srv)?:\/\/([^:]+):([^@]+)@/, 'mongodb$1://$2:****@');
+if (mongoURI) { 
+  const sanitizedURI = mongoURI.replace(/mongodb(\+srv)?:\/\/([^:]+):([^@]+)@/, 'mongodb$1://$2:****@');
   console.log('MongoDB URI:', sanitizedURI);
 } else {
   console.error('❌ MONGO_URI is not defined in .env');
   process.exit(1);
 }
 
-if (!process.env.SECRET) {
-  console.error("❌ SECRET is not defined in .env");
+if (!jwtSecret) {
+ console.error("❌ JWT_SECRET is not defined in .env");
   process.exit(1);
 }

@@ -1,13 +1,14 @@
 const User = require('../models/User')
 const jwt = require('jsonwebtoken')
+const { jwtSecret } = require('../config/config'); 
 
 // Enhanced token creation with better error handling
 const createToken = (id) => {
   try {
-    if (!process.env.SECRET) {
+     if (!jwtSecret) {
       throw new Error('JWT secret is not defined in environment variables');
     }
-    return jwt.sign({ id }, process.env.SECRET, { expiresIn: '2h' });
+    return jwt.sign({ id }, jwtSecret, { expiresIn: '2h' });
   } catch (error) {
     console.error('Token creation failed:', error.message);
     throw new Error('Authentication token creation failed');
