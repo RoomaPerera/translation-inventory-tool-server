@@ -53,6 +53,7 @@ router.get('/', async (req, res) => {
 router.post('/', addTranslation);
 router.put('/:id', updateTranslation);
 router.get('/', getTranslations);
+router.patch('/:id', updateTranslation);
 
 module.exports = router;
 
