@@ -2,6 +2,7 @@ const Translation = require('../models/Translation');
 
 // Add a Translation
 exports.addTranslation = async (req, res, next) => {
+
     try {
         const { translationKey, language, translatedText, product, createdBy } = req.body;
         const newTranslation = new Translation({ translationKey, language, translatedText, product, createdBy });
@@ -10,10 +11,12 @@ exports.addTranslation = async (req, res, next) => {
     } catch (error) {
         next(error);
     }
+
 };
 
 // Update a Translation
 exports.updateTranslation = async (req, res, next) => {
+
     try {
         const { translatedText, status } = req.body;
         const updatedTranslation = await Translation.findByIdAndUpdate(
@@ -42,10 +45,12 @@ exports.editTranslationText = async (req, res, next) => {
     } catch (error) {
         next(error);
     }
+
 };
 
 // Fetch Translations with Filtering
 exports.getTranslations = async (req, res, next) => {
+
     try {
         const { product, language, word, key } = req.query;
         const filter = {};
@@ -60,3 +65,4 @@ exports.getTranslations = async (req, res, next) => {
         next(error);
     }
 };
+

@@ -1,3 +1,4 @@
+
 //const { text } = require("express");
 const { default: mongoose } = require("mongoose");
 
@@ -38,3 +39,4 @@ translationSchema.methods.addRevision = async function (newText, userId, maxRevi
 }
 
 module.exports = mongoose.model('Translation', translationSchema);
+

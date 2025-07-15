@@ -1,6 +1,7 @@
 const mongoose = require('mongoose');
 
 const translationKeySchema = new mongoose.Schema({
+
     key: { type: String, required: true, unique: true },
     description: { type: String },
     createdBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
@@ -8,3 +9,4 @@ const translationKeySchema = new mongoose.Schema({
 });
 
 module.exports = mongoose.model('TranslationKey', translationKeySchema);
+
