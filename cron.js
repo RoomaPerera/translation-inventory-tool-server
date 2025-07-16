@@ -10,7 +10,7 @@ async function startCronJobs() {
         const result = await User.deleteMany({
             deletedAt: { $lte: cutoff }
         });
-        console.log(`Purged ${result.deletedCount} deleted users`);
+        console.log(`Purged ${result.deletedCount} rejected users older than 30 days.`);
     })
     console.log('cron job scheduled');
 };
