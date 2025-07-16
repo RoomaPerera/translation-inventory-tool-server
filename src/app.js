@@ -3,6 +3,7 @@ const cors = require('cors');
 
 const authRoutes = require('./routes/authRoutes');
 const userRoutes = require('./routes/userRoutes');
+const translationRoutes = require('./routes/translation');
 
 //express app
 const app = express();
@@ -19,7 +20,7 @@ app.use((req, res, next) => {
 //routes
 app.use('/api/auth', authRoutes);
 app.use('/api/user', userRoutes);
-app.use('/api', require('./routes/emailRoutes'));
+app.use('/api/localization', translationRoutes);
 
 
 module.exports = app;
