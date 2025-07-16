@@ -3,15 +3,19 @@ const Translation = require('../models/Translation');
 const {
     addTranslation,
     updateTranslation,
-    getTranslations
-  } = require('../controllers/translationController');
+    getTranslations,
+    approveTranslation  
+} = require('../controllers/translationController');
+
+const checkAdmin = require('../middleware/checkRole'); 
+
 const router = express.Router();
 
 // Add a translation
 router.post('/', async (req, res) => {
   try {
-    const { translationKey, language, translatedText, product, createdBy } = req.body;
-    const newTranslation = new Translation({ translationKey, language, translatedText, product, createdBy });
+    const { translationKey, language, translatedText, product, createdBy, projectId } = req.body;
+    const newTranslation = new Translation({ translationKey, language, translatedText, product, createdBy, projectId });
     await newTranslation.save();
     res.status(201).json(newTranslation);
   } catch (error) {
@@ -50,9 +54,13 @@ router.get('/', async (req, res) => {
     res.status(400).json({ message: error.message });
   }
 });
+
+// ✅ These lines are fine as they allow controller-based handling
 router.post('/', addTranslation);
 router.put('/:id', updateTranslation);
 router.get('/', getTranslations);
 
-module.exports = router;
+// ✅ Approve translation (admin-only)
+router.put('/approve/:id', checkAdmin, approveTranslation);  // ✅ PROTECTED
 
+module.exports = router;

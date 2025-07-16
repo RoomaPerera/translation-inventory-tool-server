@@ -19,6 +19,8 @@ const translationSchema = new mongoose.Schema({
     language: { type: String, required: true },
     translatedText: { type: String, required: true },
     product: { type: String, required: true },
+    projectId: { type: mongoose.Schema.Types.ObjectId, ref: 'Project', required: true },
+    context: { type: String },
     status: { type: String, enum: ['pending', 'completed'], default: 'pending' }, // needs to be approved as well
     createdBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true }, // , required: true added newly
     createdAt: { type: Date, default: Date.now },
@@ -38,5 +40,5 @@ translationSchema.methods.addRevision = async function (newText, userId, maxRevi
     return this.save();
 }
 
-module.exports = mongoose.model('Translation', translationSchema);
 
+module.exports = mongoose.model('Translation', translationSchema);
