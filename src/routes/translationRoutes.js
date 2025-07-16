@@ -4,10 +4,10 @@ const {
     addTranslation,
     updateTranslation,
     getTranslations,
-    approveTranslation  // ✅ ADDED
+    approveTranslation  
 } = require('../controllers/translationController');
 
-const checkAdmin = require('../middleware/checkRole'); // ✅ NEW: admin role check middleware
+const checkAdmin = require('../middleware/checkRole'); 
 
 const router = express.Router();
 

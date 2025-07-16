@@ -1,27 +1,28 @@
 const express = require('express');
 const cors = require('cors');
 
-const auth = require('./routes/authRoutes');
+const authRoutes = require('./routes/authRoutes');
 const userRoutes = require('./routes/userRoutes');
 const projectRoutes = require('./routes/projectRoutes');
 const languageRoutes = require('./routes/languageRoutes');
 const adminRoutes    = require('./routes/adminRoutes'); 
 const developerRoutes = require('./routes/developerRoutes'); 
 const translationRoutes = require('./routes/translationRoutes');
+const revisionRoutes = require('./routes/revisionRoutes');
+const cookieParser = require('cookie-parser');
+const requireAuth = require('./middleware/requireAuth');
 
 //express app
 const app = express();
 
-// Middleware
-// More permissive CORS settings for development
+//middleware
 app.use(cors({
-  origin: '*',  // Allow all origins during development - more permissive for testing
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'Accept'],
-  credentials: true
+    origin: 'http://localhost:5173',
+    credentials: true,
 }));
 
 app.use(express.json());
+app.use(cookieParser());
 app.use((req, res, next) => {
   console.log(`${new Date().toISOString()} - ${req.method} ${req.path}`);
   next();
@@ -36,13 +37,15 @@ app.get('/api/test', (req, res) => {
   });
 });
 // Routes
-app.use('/api/auth', auth);
-app.use('/api/users', userRoutes);
-app.use('/api/projects', projectRoutes);
-app.use('/api/languages', languageRoutes);
-app.use('/api/admin', adminRoutes);  
-app.use('/api/developer', developerRoutes);   
-app.use('/api/translations', translationRoutes); 
+app.use('/api/auth', authRoutes);
+app.use('/api/users', requireAuth,userRoutes);
+app.use('/api/projects', requireAuth,projectRoutes);
+app.use('/api/languages', requireAuth,languageRoutes);
+app.use('/api/admin', requireAuth,adminRoutes);  
+app.use('/api/developer', requireAuth,developerRoutes);   
+app.use('/api/translations', requireAuth,translationRoutes); 
+app.use('/api/translations', requireAuth, revisionRoutes);
+
 
 // Error handling middleware
 app.use((err, req, res, next) => {
@@ -52,5 +55,7 @@ app.use((err, req, res, next) => {
     error: process.env.NODE_ENV === 'development' ? err : {}
   });
 });
+
+module.exports = app;const express = require('express');
 
 module.exports = app;

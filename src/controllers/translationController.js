@@ -2,14 +2,16 @@ const Translation = require('../models/Translation');
 
 // Add a Translation
 exports.addTranslation = async (req, res, next) => {
-  try {
-    const { translationKey, language, translatedText, product, createdBy, projectId } = req.body;
-    const newTranslation = new Translation({ translationKey, language, translatedText, product, context, createdBy, projectId });
-    await newTranslation.save();
-    res.status(201).json(newTranslation);
-  } catch (error) {
-    next(error);
-  }
+
+    try {
+        const { translationKey, language, translatedText, product, createdBy } = req.body;
+        const newTranslation = new Translation({ translationKey, language, translatedText, product, createdBy });
+        await newTranslation.save();
+        res.status(201).json(newTranslation);
+    } catch (error) {
+        next(error);
+    }
+
 };
 
 // Update a Translation (edit text or status)
@@ -35,6 +37,25 @@ exports.updateTranslation = async (req, res, next) => {
   }
 };
 
+/**
+ * Edit the translation text (by key + language), pushing old text into revisions
+ */
+exports.editTranslationText = async (req, res, next) => {
+    try {
+        const { _id, translatedText } = req.body;
+        const translation = await Translation.findOne({ _id });
+        if (!translation) {
+            return res.status(404).json({ error: 'Translation not found for that key/language' });
+        }
+        await translation.addRevision(translatedText, req.user.id);
+        res.json(translation);
+    } catch (error) {
+        next(error);
+    }
+
+};
+
+
 // Fetch Translations with Filtering
 exports.getTranslations = async (req, res, next) => {
   try {
@@ -53,7 +74,7 @@ exports.getTranslations = async (req, res, next) => {
   }
 };
 
-// ✅ Approve a Translation (new function)
+// ✅ Approve a Translation 
 exports.approveTranslation = async (req, res, next) => {
   try {
     const translation = await Translation.findById(req.params.id);

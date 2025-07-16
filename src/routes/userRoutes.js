@@ -1,35 +1,36 @@
-const express = require('express')
-const router = express.Router()
+const express = require('express');
+const router = express.Router();
 const {
     approveUser,
-    assignLanguages,
     modifyLanguages,
+    filterUserList,
     deleteUser,
     getUserList,
-    filterUserList,
-    getPendingUsers
-} = require('../controllers/userController')
-// const requireAuth = require('../middleware/requireAuth')
+    deleteRejectedUsers,
+    getPendingUsers,
+     assignLanguages
+} = require('../controllers/userController');
 
-// Approve a user
-router.put('/approveUser/:id', approveUser)
+const requireAuth = require('../middleware/requireAuth');
+const requireRole = require('../middleware/requireRole');
 
-// Assign languages to a translator
-router.post('/:id/assign-languages', assignLanguages)
+router.use(requireAuth);
+const adminRouter = express.Router();
 
-// Modify languages for a user
+router.put('/modifyLanguages/:id', modifyLanguages);
+
+adminRouter.put('/approveUser', approveUser);
 router.put('/modifyLanguages/:id', modifyLanguages)
-
-// Delete a user
 router.delete('/deleteUser/:id', deleteUser)
-
-// Get the user list
 router.get('/getUserList', getUserList)
-
-// Filter users by role
 router.get('/filterUserList/:role', filterUserList)
+adminRouter.delete('/deleteUser/:id', deleteUser);
+adminRouter.get('/getUserList', getUserList);
+adminRouter.get('/filterUserList/:role', filterUserList);
+adminRouter.delete('/deleteRejectedUsers', deleteRejectedUsers);
+adminRouter.get('/getPendingUsers', getPendingUsers);
+adminRouter.get('/assign-languages/:id', assignLanguages);
 
-//Get pending user list
-router.get('/pendingUsers', getPendingUsers)
+router.use('/', requireRole('Admin'), adminRouter);
 
-module.exports = router
+module.exports = router;
