@@ -11,7 +11,7 @@ const { resetPasswordTemplate } = require('../utils/emailTemplates');
 const { getAllowedLanguageCodes } = require('../utils/languageHelper');
 const { isStrongPassword } = require('../models/User');
 const { frontendURL } = require('../config/config');
-const Language = require('../models/Languge');
+const Language = require('../models/Language');
 
 // Constants for expiry and messages
 const PASSWORD_RESET_EXPIRY_MINUTES = 15;

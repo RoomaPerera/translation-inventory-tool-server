@@ -46,11 +46,11 @@ const userSchema = new Schema({
 function isValidEmail(email) {
     const emailRegex = new RegExp(
         "^" +
-        (?:[A-Za-z0-9!#$%&'*+/=?^_\{|}~-]+(?:\\.[A-Za-z0-9!#$%&'*+/=?^_\{|}~-]+)*|" +
-        (?:\\\\[\\x00-\\x7F]|[^\\\\"])*") +
+        "(?:[A-Za-z0-9!#$%&'*+/=?^_\\{|}~-]+(?:\\.[A-Za-z0-9!#$%&'*+/=?^_\\{|}~-]+)*|" +
+        "(?:\\\\[\\x00-\\x7F]|[^\\\\\"]*)\")+" +
         "@" +
-        (?:(?:[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?)\\.)+ +
-        [A-Za-z]{2,63} +
+        "(?:(?:[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?)\\.)+" +
+        "[A-Za-z]{2,63}" +
         "$"
     );
     return emailRegex.test(email);
@@ -161,7 +161,7 @@ userSchema.statics.register = async function (userName, email, password, role, l
     //email domain check
     const hasMx = await hasMaxRecord(email);
     if (!hasMx) {
-        console.warn(Warning: MX record not found for ${email});
+        console.warn(`Warning: MX record not found for ${email}`);
     }
 
     //password strength check
