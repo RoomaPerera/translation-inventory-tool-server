@@ -1,13 +1,11 @@
 const express = require('express');
 const router = express.Router();
 const { addActivityLog, getActivityLogs } = require('../controllers/activityLogController');
-const checkRole = require('../middleware/checkRole'); 
+const requireAuth = require('../middleware/requireAuth');
 
-
-router.post('/', addActivityLog);
-
-
-router.get('/', checkRole(['admin', 'developer', 'translator']), getActivityLogs);
+// All routes require authentication
+router.post('/', requireAuth, addActivityLog);
+router.get('/', requireAuth, getActivityLogs);
 
 module.exports = router;
 
