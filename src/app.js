@@ -22,6 +22,7 @@ app.use(cors({
 }));
 
 app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
 app.use((req, res, next) => {
   console.log(`${new Date().toISOString()} - ${req.method} ${req.path}`);
@@ -39,6 +40,7 @@ app.get('/api/test', (req, res) => {
 // Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/users', requireAuth,userRoutes);
+app.use('/api/localization', translationRoutes);
 app.use('/api/projects', requireAuth,projectRoutes);
 app.use('/api/languages', requireAuth,languageRoutes);
 app.use('/api/admin', requireAuth,adminRoutes);  
