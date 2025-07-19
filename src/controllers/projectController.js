@@ -1,4 +1,5 @@
 const Project = require('../models/Project');
+const { notifyNewProject } = require('../utils/notificationService');
 
 // REQ-16: Add New Project
 const addProject = async (req, res) => {
@@ -24,6 +25,9 @@ const addProject = async (req, res) => {
     });
 
     await newProject.save();
+    // Send notification to relevant translators
+    await notifyNewProject(newProject);
+
     res.status(201).json({ message: 'Project added successfully.', project: newProject });
   } catch (error) {
     console.error('🔥 Error creating project:', error);

@@ -1,6 +1,7 @@
 const Language = require('../models/Language');
 const User = require('../models/User');
 const mongoose = require('mongoose');
+const { notifyNewLanguage } = require('../utils/notificationService');
 
 // REQ-17: Add New Language
 const addLanguage = async (req, res) => {
@@ -26,6 +27,9 @@ const addLanguage = async (req, res) => {
     });
 
     await newLanguage.save();
+    // Send notification to relevant translators
+    await notifyNewLanguage(newLanguage);
+
     res.status(201).json({ message: 'Language added successfully.', language: newLanguage });
 
   } catch (error) {

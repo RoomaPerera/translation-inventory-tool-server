@@ -1,4 +1,5 @@
 const Translation = require('../models/Translation');
+const { notifyNewTranslation } = require('../utils/notificationService');
 
 // Add a Translation
 exports.addTranslation = async (req, res, next) => {
@@ -7,6 +8,8 @@ exports.addTranslation = async (req, res, next) => {
         const { translationKey, language, translatedText, product, createdBy } = req.body;
         const newTranslation = new Translation({ translationKey, language, translatedText, product, createdBy });
         await newTranslation.save();
+        // Send notification to relevant translators
+        await notifyNewTranslation({ language, text: translatedText });
         res.status(201).json(newTranslation);
     } catch (error) {
         next(error);
