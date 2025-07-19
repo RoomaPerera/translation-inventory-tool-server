@@ -1,39 +1,64 @@
-const express = require('express')
-const cors = require('cors')
+// Load environment variables from .env file
+require('dotenv').config();
 
-const connectDB = require('./config/db');
-const { port } = require('./config');
+const express = require('express');
+const mongoose = require('mongoose');
+const cors = require('cors');
+const morgan = require('morgan');
 
+// Import routes
+const authRoutes = require('./routes/authRoutes');
+const userRoutes = require('./routes/userRoutes');
+const translationRoutes = require('./routes/translationRoutes');
+const translationValidationRoutes = require('./routes/translationValidationRoutes');
 
+// Import custom middleware (error handler)
+const errorHandler = require('./middleware/errorHandler');
 
-const auth = require('./routes/authRoutes')
-const userRoutes = require('./routes/userRoutes')
+const app = express();
 
-//express app
-const app = express()
+// Middleware
+app.use(cors({
+  origin: process.env.CLIENT_ORIGIN || '*', // You can restrict origins here
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  credentials: true,
+}));
+app.use(express.json());
+app.use(express.urlencoded({ extended: true })); // For parsing URL-encoded payloads
+app.use(morgan('dev'));
 
-//middleware
-app.use(cors());
-app.use(express.json())
-app.use((req, res, next) => {
-    console.log(req.path, req.method)
-    next()
-})
+// Routes
+app.use('/api/auth', authRoutes);
+app.use('/api/user', userRoutes);
+app.use('/api/translation', translationRoutes);
+app.use('/api/translation-validation', translationValidationRoutes);
 
-//routes
-app.use('/api/auth', auth)
-app.use('/api/user', userRoutes)
-
-
-//connect to db
-connectDB().then(() => {
-    const server = app.listen(port, () => {
-        console.log(`Server running on port ${port}`);
-    });
-    process.once('SIGUSR2', () => {
-        server.close(() => process.kill(process.pid, 'SIGUSR2'));
-    });
-    process.on('SIGINT', () => {
-        server.close(() => process.exit(0));
-    });
+// Health check endpoint
+app.get('/', (req, res) => {
+  res.status(200).send('API is running.');
 });
+
+// Global error handler (should be last middleware)
+app.use(errorHandler);
+
+// Connect to MongoDB and start server
+const PORT = process.env.PORT || 5000;
+
+mongoose
+  .connect(process.env.MONGO_URI, {
+    useNewUrlParser: true,
+    useUnifiedTopology: true,
+  })
+  .then(() => {
+    console.log('🔥 MongoDB connected successfully');
+    app.listen(PORT, () => {
+      console.log(`🔥 Server running on port ${PORT}`);
+    });
+  })
+  .catch((error) => {
+    console.error('❌ MongoDB connection error:', error);
+    process.exit(1); // Exit process on DB connection failure
+  });
+
+// Optional: Log RESET_SECRET for debugging (remove in production)
+console.log('RESET_SECRET:', process.env.RESET_SECRET);
