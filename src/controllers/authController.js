@@ -70,13 +70,25 @@ const loginUser = async (req, res) => {
     try {
         const user = await User.login(email, password);
         const token = createToken({ id: user._id, role: user.role });
-        // send token as HTTP only secure cookie
+        
+        // THE FIX IS HERE: We now return the full user object
+        const userData = {
+            _id: user._id,       // Needed for API calls like assigning languages
+            userName: user.userName, // For the sidebar
+            email: user.email,
+            role: user.role,       // For the sidebar
+            languages: user.languages // For the language modal
+        };
+
+        // Send token as an HTTP-only secure cookie
         res.cookie('token', token, {
             httpOnly: true,
             secure: process.env.NODE_ENV === 'production',
             sameSite: 'Strict',
-            maxAge: 2 * 60 * 60 * 1000 //2 hours in ms
-        }).status(200).json({ email });
+            path: '/',
+            maxAge: 2 * 60 * 60 * 1000 // 2 hours in ms
+        }).status(200).json(userData); // Send the complete user data back
+
     } catch (error) {
         res.status(400).json({ error: error.message });
     }

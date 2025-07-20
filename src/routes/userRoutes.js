@@ -16,13 +16,9 @@ const requireRole = require('../middleware/requireRole');
 router.use(requireAuth);
 const adminRouter = express.Router();
 
-router.put('/modifyLanguages/:id', modifyLanguages);
 
 adminRouter.put('/approveUser', approveUser);
-router.put('/modifyLanguages/:id', modifyLanguages)
-router.delete('/deleteUser/:id', deleteUser)
-router.get('/getUserList', getUserList)
-router.get('/filterUserList/:role', filterUserList)
+adminRouter.put('/modifyLanguages/:id', modifyLanguages);
 adminRouter.delete('/deleteUser/:id', deleteUser);
 adminRouter.get('/getUserList', getUserList);
 adminRouter.get('/filterUserList/:role', filterUserList);
