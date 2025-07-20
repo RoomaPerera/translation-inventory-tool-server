@@ -15,6 +15,8 @@ const requireAuth = require('./middleware/requireAuth');
 //express app
 const app = express();
 
+const logger = require('./middleware/logger');
+
 //middleware
 app.use(cors({
     origin: 'http://localhost:5173',
@@ -23,6 +25,7 @@ app.use(cors({
 
 app.use(express.json());
 app.use(cookieParser());
+app.use(logger); //  log all requests
 app.use((req, res, next) => {
   console.log(`${new Date().toISOString()} - ${req.method} ${req.path}`);
   next();
@@ -54,6 +57,7 @@ app.use((err, req, res, next) => {
     message: err.message || 'Internal Server Error',
     error: process.env.NODE_ENV === 'development' ? err : {}
   });
-});
+});app.use('/api/activitylogs', require('./routes/activityLogRoutes'));
+
 
 module.exports = app;

@@ -2,7 +2,7 @@ require('dotenv').config();
 require('./cron');
 
 const connectDB = require('./src/config/db');
-const { port } = require('./src/config/config');
+const {port } = require('./src/config/config');
 const app = require('./src/app');
 
 //connect to db
