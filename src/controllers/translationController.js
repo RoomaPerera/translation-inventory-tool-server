@@ -55,9 +55,15 @@ exports.editTranslationText = async (req, res, next) => {
     }
 };
 
-// Fetch Translations with Filtering
+// Fetch Translations with Filtering and Pagination
 exports.getTranslations = async (req, res, next) => {
     try {
+        // Pagination parameters from query, with defaults
+        const page = parseInt(req.query.page, 10) || 1;
+        const limit = parseInt(req.query.limit, 10) || 10;
+        const skip = (page - 1) * limit;
+
+        // Filtering parameters
         const { product, language, word, key } = req.query;
         const filter = {};
         if (product) filter.product = product;
@@ -65,13 +71,28 @@ exports.getTranslations = async (req, res, next) => {
         if (word) filter.translatedText = { $regex: word, $options: 'i' };
         if (key) filter.translationKey = key;
 
-        // Improvement: Populate the 'createdBy' field to get the username
-        const translations = await Translation.find(filter).populate('createdBy', 'userName');
-        res.json(translations);
+        // Execute two queries in parallel: one for the data, one for the total count
+        const [translations, totalItems] = await Promise.all([
+            Translation.find(filter)
+                .populate('createdBy', 'userName')
+                .sort({ createdAt: -1 }) // Sort by most recent
+                .skip(skip)
+                .limit(limit),
+            Translation.countDocuments(filter)
+        ]);
+
+        // Send a structured response with pagination metadata
+        res.json({
+            translations,
+            currentPage: page,
+            totalPages: Math.ceil(totalItems / limit),
+            totalItems
+        });
     } catch (error) {
         next(error);
     }
 };
+
 
 // *** THIS IS THE NEWLY ADDED FUNCTION ***
 // Delete a Translation by its ID
