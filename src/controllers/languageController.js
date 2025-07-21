@@ -2,6 +2,7 @@ const Language = require('../models/Language');
 const User = require('../models/User');
 const mongoose = require('mongoose');
 const { notifyNewLanguage } = require('../utils/notificationService');
+const ActivityLog = require('../models/ActivityLog');
 
 // REQ-17: Add New Language
 const addLanguage = async (req, res) => {
@@ -29,6 +30,25 @@ const addLanguage = async (req, res) => {
     await newLanguage.save();
     // Send notification to relevant translators
     await notifyNewLanguage(newLanguage);
+
+    // --- Activity Log: User adds new language ---
+    try {
+      const userId = req.user?.id;
+      const userRole = req.user?.role;
+      if (userId && userRole) {
+        const user = await User.findById(userId).select('userName');
+        if (user) {
+          await ActivityLog.create({
+            userId,
+            userName: user.userName,
+            role: userRole.toLowerCase(),
+            description: `Added a new language: ${name} (${code.toUpperCase()})`
+          });
+        }
+      }
+    } catch (logErr) {
+      console.error('ActivityLog error (addLanguage):', logErr);
+    }
 
     res.status(201).json({ message: 'Language added successfully.', language: newLanguage });
 

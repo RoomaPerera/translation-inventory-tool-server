@@ -1,5 +1,7 @@
 const Project = require('../models/Project');
 const { notifyNewProject } = require('../utils/notificationService');
+const ActivityLog = require('../models/ActivityLog');
+const User = require('../models/User');
 
 // REQ-16: Add New Project
 const addProject = async (req, res) => {
@@ -27,6 +29,24 @@ const addProject = async (req, res) => {
     await newProject.save();
     // Send notification to relevant translators
     await notifyNewProject(newProject);
+    // --- Activity Log: User creates project ---
+    try {
+      const userId = req.user?.id;
+      const userRole = req.user?.role;
+      if (userId && userRole) {
+        const user = await User.findById(userId).select('userName');
+        if (user) {
+          await ActivityLog.create({
+            userId,
+            userName: user.userName,
+            role: userRole.toLowerCase(),
+            description: `Created a new project: ${name}`
+          });
+        }
+      }
+    } catch (logErr) {
+      console.error('ActivityLog error (addProject):', logErr);
+    }
 
     res.status(201).json({ message: 'Project added successfully.', project: newProject });
   } catch (error) {

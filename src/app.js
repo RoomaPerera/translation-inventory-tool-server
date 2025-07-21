@@ -30,6 +30,8 @@ app.use((req, res, next) => {
   console.log(`${new Date().toISOString()} - ${req.method} ${req.path}`);
   next();
 });
+app.use('/api/activitylogs', require('./routes/activityLogRoutes'));
+
 
 // Simple test endpoint to verify API is working
 app.get('/api/test', (req, res) => {
@@ -57,7 +59,6 @@ app.use((err, req, res, next) => {
     message: err.message || 'Internal Server Error',
     error: process.env.NODE_ENV === 'development' ? err : {}
   });
-});app.use('/api/activitylogs', require('./routes/activityLogRoutes'));
-
+});
 
 module.exports = app;

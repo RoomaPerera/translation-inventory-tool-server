@@ -1,5 +1,7 @@
 const Translation = require('../models/Translation');
 const { notifyNewTranslation } = require('../utils/notificationService');
+const ActivityLog = require('../models/ActivityLog');
+const User = require('../models/User');
 
 // Add a Translation
 exports.addTranslation = async (req, res, next) => {
@@ -10,6 +12,24 @@ exports.addTranslation = async (req, res, next) => {
         await newTranslation.save();
         // Send notification to relevant translators
         await notifyNewTranslation({ language, text: translatedText });
+        // --- Activity Log: User adds translation ---
+        try {
+            const userId = req.user?.id;
+            const userRole = req.user?.role;
+            if (userId && userRole) {
+                const user = await User.findById(userId).select('userName');
+                if (user) {
+                    await ActivityLog.create({
+                        userId,
+                        userName: user.userName,
+                        role: userRole.toLowerCase(),
+                        description: `Added a new translation for key: ${translationKey} in language: ${language}`
+                    });
+                }
+            }
+        } catch (logErr) {
+            console.error('ActivityLog error (addTranslation):', logErr);
+        }
         res.status(201).json(newTranslation);
     } catch (error) {
         next(error);

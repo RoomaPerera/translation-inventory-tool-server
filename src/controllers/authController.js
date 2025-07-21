@@ -76,7 +76,14 @@ const loginUser = async (req, res) => {
             secure: process.env.NODE_ENV === 'production',
             sameSite: 'Strict',
             maxAge: 2 * 60 * 60 * 1000 //2 hours in ms
-        }).status(200).json({ email });
+        })
+        // --- FIX: include token and user info in response ---
+        .status(200).json({
+            email: user.email,
+            userName: user.userName,
+            role: user.role,
+            token // <--- include the token here!
+        });
     } catch (error) {
         res.status(400).json({ error: error.message });
     }
