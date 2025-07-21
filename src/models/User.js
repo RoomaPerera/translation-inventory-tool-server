@@ -221,7 +221,9 @@ userSchema.statics.login = async function (email, password) {
     if (!email || !password) {
         throw Error('All fields must be filled');
     }
-    const user = await this.findOne({ email })
+    const normalizedEmail = email.toLowerCase().trim();
+
+    const user = await this.findOne({ email: normalizedEmail })
     if (!user) {
         throw Error('Incorrect Email');
     }
