@@ -16,6 +16,7 @@ const { frontendURL } = require('../config/config');
 const Language = require('../models/Language');
 const UserActivity = require('../models/UserActivity');
 
+
 // Constants for expiry and messages
 const PASSWORD_RESET_EXPIRY_MINUTES = 15;
 const MSG_PASSWORD_RESET_SENT = 'Reset email sent. Please check your inbox.';
@@ -88,6 +89,7 @@ const loginUser = async (req, res) => {
         await user.save();
         const token = createToken({ id: user._id, role: user.role });
 
+
         // Prepare user object for frontend
         const userObj = {
             id: user._id,
@@ -120,19 +122,23 @@ const loginUser = async (req, res) => {
 
         // Send token as an HTTP-only secure cookie
 
+
         res.cookie('token', token, {
             httpOnly: true,
             secure: process.env.NODE_ENV === 'production',
             sameSite: 'Strict',
 
+
             path: '/',
             maxAge: 2 * 60 * 60 * 1000 //2 hours in ms
         }).status(200).json({
             user: userObj,
+            email,
             token,
             userData,
             message: 'Login successful'
         });
+
 
     } catch (error) {
         // Log failed login
