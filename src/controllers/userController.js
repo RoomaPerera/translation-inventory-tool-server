@@ -1,3 +1,4 @@
+//userController
 // Admin level user management: approval, language updates, deletion, listing
 const User = require('../models/User');
 const mongoose = require('mongoose');
@@ -6,6 +7,7 @@ const { sendMail } = require('../utils/mailer');
 const { approvalTemplate, rejectionTemplate } = require('../utils/emailTemplates')
 const adminAudit = require('../models/adminAudit');
 const { frontendURL } = require('../config/config');
+const { notifyLanguageAssignment } = require('../utils/notificationService');
 
 //Role status constants
 const ROLE_STATUS = {
@@ -102,6 +104,10 @@ const modifyLanguages = async (req, res) => {
             action: 'ModifiedLanguages',
             details: { languages: uniqueCodes }
         });
+        // Send notification to the translator for each assigned language
+        for (const lang of uniqueCodes) {
+            await notifyLanguageAssignment(user, lang);
+        }
         res.status(200).json({ message: 'Languages Updated' });
     } catch (error) {
         res.status(400).json({ error: error.message });

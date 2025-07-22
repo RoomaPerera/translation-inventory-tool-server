@@ -1,0 +1,28 @@
+{
+    "en": {
+        "welcome": "Welcome",
+        "goodbye": "Goodbye",
+        "login": "Login",
+        "logout": "Logout",
+        "search": "Search",
+        "save": "Save",
+        "cancel": "Cancel",
+        "delete": "Delete",
+        "edit": "Edit",
+        "upload_file": "Upload File",
+        "no_results_found": "No results found"
+    },
+    "fr": {
+        "welcome": "Bienvenue",
+        "goodbye": "Au revoir",
+        "login": "Se connecter",
+        "logout": "Se déconnecter",
+        "search": "Rechercher",
+        "save": "Enregistrer",
+        "cancel": "Annuler",
+        "delete": "Supprimer",
+        "edit": "Modifier",
+        "upload_file": "Télécharger le fichier",
+        "no_results_found": "Aucun résultat trouvé"
+    }
+}

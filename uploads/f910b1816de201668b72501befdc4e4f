@@ -1,0 +1,9 @@
+{
+    "en": {
+        "welcome": "Welcome",
+        "goodbye": "Goodbye"
+    },
+    "fr": {
+        "welcome": "Bienvenue"
+    }
+}
