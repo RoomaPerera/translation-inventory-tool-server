@@ -1,6 +1,4 @@
-
 const express = require('express');
-const router = express.Router();
 const revisionRoutes = require('./revisionRoutes'); // Import the sub-router
 
 // Import all necessary translation controller functions

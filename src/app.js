@@ -1,4 +1,3 @@
-
 require('dotenv').config();
 const express = require('express');
 const mongoose = require('mongoose');
@@ -30,20 +29,15 @@ const languageRoutes = require('./routes/languageRoutes');
 // Express app initialization
 const app = express();
 
-
-
 // Import models to register schemas
 require('./models/User');
 require('./models/UserActivity');
 require('./models/Anomaly');
 
-
-
 // Middleware setup
 app.use(cors({
     origin: process.env.FRONTEND_URL || 'http://localhost:5173',
     credentials: true,
-
 }));
 
 app.use(express.json());
@@ -55,7 +49,6 @@ app.use((req, res, next) => {
     console.log(`${new Date().toISOString()} - ${req.method} ${req.path}`);
     next();
 });
-
 
 // Parse JSON
 app.use(express.json());
@@ -78,7 +71,6 @@ app.use('/api/nlp', requireAuth, nlpRoutes);
 // Start anomaly detection
 Scheduler.start();
 
-
 // Error handling middleware
 app.use((err, req, res, next) => {
     console.error('Global error handler:', err);
@@ -87,7 +79,6 @@ app.use((err, req, res, next) => {
         error: process.env.NODE_ENV === 'development' ? err : {}
     });
 });
-
 
 // Global Error Handler Middleware
 app.use(errorHandler);
