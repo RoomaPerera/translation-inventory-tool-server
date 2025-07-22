@@ -58,6 +58,8 @@ exports.editTranslationText = async (req, res, next) => {
 // Fetch Translations with Filtering and Pagination
 exports.getTranslations = async (req, res, next) => {
     try {
+        console.log("--- RUNNING LATEST getTranslations CONTROLLER ---");
+        console.log("Received Query Params:", req.query);
         // Pagination parameters from query, with defaults
         const page = parseInt(req.query.page, 10) || 1;
         const limit = parseInt(req.query.limit, 10) || 10;
@@ -69,7 +71,7 @@ exports.getTranslations = async (req, res, next) => {
         if (product) filter.product = product;
         if (language) filter.language = language;
         if (word) filter.translatedText = { $regex: word, $options: 'i' };
-        if (key) filter.translationKey = key;
+        if (key) filter.translationKey = { $regex: key, $options: 'i' };
 
         // Execute two queries in parallel: one for the data, one for the total count
         const [translations, totalItems] = await Promise.all([
@@ -94,7 +96,6 @@ exports.getTranslations = async (req, res, next) => {
 };
 
 
-// *** THIS IS THE NEWLY ADDED FUNCTION ***
 // Delete a Translation by its ID
 exports.deleteTranslation = async (req, res, next) => {
     try {
