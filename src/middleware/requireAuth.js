@@ -46,7 +46,7 @@ const requireAuth = async (req, res, next) => {
         }
         const now = Date.now();
         const elapsed = now - new Date(user.lastActivity).getTime();
-        if (elapsed > INACTIVITY_PERIOD) {
+        if (elapsed > INACTIVITY_LIMIT_MS) {
             return res.status(401).json('Session Expired due to inactivity');
         }
         user.lastActivity = now;

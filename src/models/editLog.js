@@ -1,12 +1,12 @@
 const mongoose = require('mongoose');
 
 const editLogSchema = new mongoose.Schema({
-    translation: {
+    translationId: {
         type: mongoose.Schema.Types.ObjectId,
         ref: 'Translation',
         required: true
     },
-    user: {
+    userId: {
         type: mongoose.Schema.Types.ObjectId,
         ref: 'User',
         required: true
