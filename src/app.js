@@ -2,8 +2,6 @@ require('dotenv').config();
 const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
-const cookieParser = require('cookie-parser');
-const requireAuth = require('./middleware/requireAuth');
 const errorHandler = require('./middleware/errorMiddleware');
 
 // Import all primary route handlers
@@ -20,7 +18,6 @@ const requireAuth = require('./middleware/requireAuth');
 const fuzzyRoutes = require('./routes/fuzzyRoutes');
 const Scheduler = require('./utils/scheduler');
 const logger = require('./middleware/logger');
-const translationRoutes = require('./routes/translationRoutes');
 const bulkRoutes = require('./routes/bulkOperations');
 const nlpRoutes = require('./routes/nlpRoutes');
 const languageRoutes = require('./routes/languageRoutes');
