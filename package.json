@@ -14,10 +14,10 @@
   "type": "commonjs",
   "dependencies": {
     "archiver": "^7.0.1",
-    "cors": "^2.8.5",
     "axios": "^1.10.0",
     "bcrypt": "^5.1.1",
     "cookie-parser": "^1.4.7",
+    "cors": "^2.8.5",
     "csv-parser": "^3.2.0",
     "diff": "^7.0.0",
     "dotenv": "^16.6.1",
