@@ -1,4 +1,6 @@
+require('dotenv').config();
 const express = require('express');
+const mongoose = require('mongoose');
 const cors = require('cors');
 
 const authRoutes = require('./routes/authRoutes');
@@ -16,30 +18,19 @@ const fuzzyRoutes = require('./routes/fuzzyRoutes');
 //express app
 const app = express();
 
-const logger = require('./middleware/logger');
+// Connect to MongoDB
+mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/notification');
 
-//middleware
+// Enable CORS BEFORE routes
 app.use(cors({
-    origin: 'http://localhost:5173',
-    credentials: true,
+  origin: 'http://localhost:5173',
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
+  credentials: true
 }));
 
+// Parse JSON
 app.use(express.json());
-app.use(cookieParser());
-app.use(logger); //  log all requests
-app.use((req, res, next) => {
-  console.log(`${new Date().toISOString()} - ${req.method} ${req.path}`);
-  next();
-});
 
-// Simple test endpoint to verify API is working
-app.get('/api/test', (req, res) => {
-  res.json({ 
-    message: 'API is working', 
-    timestamp: new Date().toISOString(),
-    environment: process.env.NODE_ENV || 'development'
-  });
-});
 // Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/users', requireAuth,userRoutes);
@@ -62,4 +53,4 @@ app.use((err, req, res, next) => {
 
 
 
-module.exports = app;
+module.exports = app; 
