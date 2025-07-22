@@ -86,6 +86,38 @@ const loginUser = async (req, res) => {
 };
 
 /**
+ * @route   GET /api/auth/me
+ * @desc    Get current user info (verify authentication)
+ */
+const getCurrentUser = async (req, res) => {
+    try {
+        // req.user is set by requireAuth middleware
+        if (!req.user) {
+            return res.status(401).json({ error: 'Not authenticated' });
+        }
+
+        const user = await User.findById(req.user.id).select('-password');
+        if (!user) {
+            return res.status(404).json({ error: 'User not found' });
+        }
+
+        res.status(200).json({
+            user: {
+                id: user._id,
+                email: user.email,
+                userName: user.userName,
+                role: user.role,
+                // Include any other user fields you need on the frontend
+                languages: user.languages
+            }
+        });
+    } catch (error) {
+        console.error('getCurrentUser error:', error);
+        res.status(500).json({ error: 'Server error' });
+    }
+};
+
+/**
  * @route   POST /api/auth/resetPassword
  * @desc    Send short-lived reset link email - Forgot Password
  */
@@ -222,5 +254,6 @@ module.exports = {
     setNewPassword,
     changePassword,
     logoutUser,
-    getLanguages
+    getLanguages,
+    getCurrentUser
 };

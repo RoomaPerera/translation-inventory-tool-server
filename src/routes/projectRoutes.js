@@ -1,13 +1,13 @@
 const express = require('express');
 const router = express.Router();
 const {
-  addProject,
-  getAllProjects,
-  getProjectById,
-  updateProject,
-  deleteProject,
-  assignLanguagesToProject,
-  getProjectLanguages
+    addProject,
+    getAllProjects,
+    getProjectById,
+    updateProject,
+    deleteProject,
+    assignLanguagesToProject,
+    getProjectLanguages
 } = require('../controllers/projectController');
 
 // POST: Add new project
