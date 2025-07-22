@@ -8,9 +8,9 @@ const app = require('./src/app');
 //connect to db
 connectDB().then(() => {
     const server = app.listen(port, () => {
-      console.log(`⚡ Server running on port ${port}`);
-      console.log(`🔗 API available at http://localhost:${port}/api`);
-      console.log(`🧪 Test endpoint at http://localhost:${port}/api/test`);
+      console.log(`Server running on port ${port}`);
+      console.log(`API available at http://localhost:${port}/api`);
+      console.log(`Test endpoint at http://localhost:${port}/api/test`);
     });
     
     // Graceful shutdown handlers
