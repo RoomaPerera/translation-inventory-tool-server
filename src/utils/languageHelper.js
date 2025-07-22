@@ -1,4 +1,4 @@
-const Language = require('../models/Languge');
+const Language = require('../models/Language');
 
 let _cachedCodes = null;
 
