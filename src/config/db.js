@@ -1,18 +1,14 @@
-// Responsible for establishing and exporting MongoDB connection
 const mongoose = require('mongoose');
-const { mongoURI } = require('./config');
-
-// Exit code for fatal DB errors
-const DB_EXIT_CODE = 1;
+const { mongoURI } = require('./index');
 
 async function connectDB() {
     try {
-        await mongoose.connect(process.env.MONGO_URI);
+        await mongoose.connect(mongoURI);
         console.log('MongoDB connected');
     } catch (err) {
         console.error('MongoDB connection error:', err);
-        process.exit(DB_EXIT_CODE);
+        process.exit(1);
     }
-}
+};
 
 module.exports = connectDB;

@@ -1,267 +1,190 @@
-// handles user authentication, registration, and password workflow
 const User = require('../models/User');
+const jwt = require('jsonwebtoken');
+const nodemailer = require('nodemailer');
 const bcrypt = require('bcrypt');
-const BlockedIP = require('../models/BlockedIP');
-const {
-    createToken,
-    createShortToken,
-    verifyToken
-} = require('../utils/jwt');
-const { sendMail } = require('../utils/mailer');
-const { resetPasswordTemplate } = require('../utils/emailTemplates');
-const { getAllowedLanguageCodes } = require('../utils/languageHelper');
-const { isStrongPassword } = require('../models/User');
-const { frontendURL } = require('../config/config');
-const Language = require('../models/Language');
-const UserActivity = require('../models/UserActivity');
 
-// Constants for expiry and messages
-const PASSWORD_RESET_EXPIRY_MINUTES = 15;
-const MSG_PASSWORD_RESET_SENT = 'Reset email sent. Please check your inbox.';
-const MSG_PASSWORD_CHANGED = 'Password successfully changed';
-const ALLOWED_SELF_ROLES = ['Translator', 'Developer', 'Admin'];
+// Create JWT token
+const createToken = (id, secret, expiresIn) => jwt.sign({ id }, secret, { expiresIn });
 
-/**
- * @route   POST /api/auth/register
- * @desc    Register a new user (pending approval)
- */
+// Register User
 const registerUser = async (req, res) => {
-    console.log('[registerUser] req.body =', req.body);
-    const { userName, email, password, role, languages } = req.body;
-    // --- IP BLOCK CHECK ---
-    const ip = req.ip || req.connection.remoteAddress;
-    const blocked = await BlockedIP.findOne({ ip });
-    if (blocked) {
-        return res.status(403).json({ error: 'Your IP is blocked.' });
-    }
-    if (!ALLOWED_SELF_ROLES.includes(role)) {
-        return res.status(400).json({ error: `You may only self‑register as: ${ALLOWED_SELF_ROLES.join(', ')}` });
-    }
-
-    //if Translator, validate languages
-    if (role == 'Translator') {
-        if (!Array.isArray(languages) || languages.length === 0) {
-            return res.status(400).json({ error: 'Translators must select at least one language.' });
-        }
-        const uniqueCodes = [...new Set(languages.map(l => l.trim().toUpperCase()))];
-        const allowed = await getAllowedLanguageCodes();
-        const invalid = uniqueCodes.filter(c => !allowed.includes(c));
-        if (invalid.length) {
-            return res.status(400).json({ error: `Invalid language codes: ${invalid.join(', ')}.` });
-        }
-        req.body.languages = uniqueCodes;
-    } else {
-        delete req.body.languages;
-    }
-
-    //user name length
-    if (userName.trim().length < 3) {
-        return res.status(400).json({ error: 'Username must be at least 3 characters long.' })
-    }
-    const cleanLanguages = Array.isArray(languages)
-        ? languages.filter(l => typeof l === 'string' && l.trim() !== '')
-        : [];
-    try {
-        await User.register(userName.trim(), email.trim(), password, role, cleanLanguages);
-        res.status(200).json({ message: 'Send to Approval' });
-    } catch (error) {
-        res.status(400).json({ error: error.message });
-    }
+  const { userName, email, password, role, languages } = req.body;
+  try {
+    const user = await User.register(userName, email, password, role, languages);
+    res.status(200).json({ message: 'Send to Approval' });
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
 };
 
-/**
- * @route   POST /api/auth/login
- * @desc    Authenticate user and return JWT
- */
+// Login User
 const loginUser = async (req, res) => {
-    const { email, password } = req.body;
-    // --- IP BLOCK CHECK ---
-    const ip = req.ip || req.connection.remoteAddress;
-    const blocked = await BlockedIP.findOne({ ip });
-    if (blocked) {
-        return res.status(403).json({ error: 'Your IP is blocked.' });
-    }
-    try {
-        const user = await User.login(email, password);
-        const token = createToken({ id: user._id, role: user.role });
-        // Prepare user object for frontend
-        const userObj = {
-            id: user._id,
-            name: user.name,
-            email: user.email,
-            role: user.role,
-            lastLogin: user.lastLogin,
-            isActive: user.isActive,
-            languages: user.languages || [],
-        };
-        // Log successful login
-        await UserActivity.create({
-            user: user._id,
-            type: 'login',
-            success: true,
-            ip,
-            details: { email }
-        });
-        // send token as HTTP only secure cookie
-        res.cookie('token', token, {
-            httpOnly: true,
-            secure: process.env.NODE_ENV === 'production',
-            sameSite: 'Strict',
-            maxAge: 2 * 60 * 60 * 1000 //2 hours in ms
-        }).status(200).json({
-            user: userObj,
-            token,
-            message: 'Login successful'
-        });
-    } catch (error) {
-        // Log failed login
-        await UserActivity.create({
-            user: null,
-            type: 'failed_login',
-            success: false,
-            ip,
-            details: { email }
-        });
-        res.status(400).json({ error: error.message });
-    }
-};
+  const { email, password } = req.body;
+  try {
+    if (!email || !password) throw new Error('Email and password are required');
 
-/**
- * @route   POST /api/auth/resetPassword
- * @desc    Send short-lived reset link email - Forgot Password
- */
-const resetPassword = async (req, res) => {
-    const { email } = req.body;
-    const user = await User.findOne({ email });
-    if (!user) {
-        return res.status(404).json({ error: 'No account with that email' });
-    }
+    const user = await User.login(email, password);
+    const token = createToken(user._id, process.env.SECRET, '1h');
 
-    const resetToken = createShortToken({
-        id: user._id.toString(),
+    res.status(200).json({
+      token,
+      user: {
+        userName: user.userName || user.name,
+        email: user.email,
         role: user.role,
-        version: user.resetTokenVersion
+      },
     });
-    const resetURL = `${frontendURL}/reset-password?token=${resetToken}`;
-
-    const html = resetPasswordTemplate({
-        userName: user.userName,
-        resetURL,
-        expiryMinutes: PASSWORD_RESET_EXPIRY_MINUTES
-    });
-
-    await sendMail({
-        to: user.email,
-        subject: 'Password Reset Link',
-        html,
-    });
-    res.json({ message: MSG_PASSWORD_RESET_SENT });
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
 };
 
-/**
- * @route   POST /api/auth/setNewPassword
- * @desc    Verify reset token and update password - Forgot Password
- */
-const setNewPassword = async (req, res) => {
-    const { token, newPassword, confirmPassword } = req.body;
-    if (newPassword != confirmPassword) {
-        return res.status(400).json({ error: 'Passwords do not match.' });
+// Forgot Password: Send OTP and resetToken via email
+const forgotPassword = async (req, res) => {
+  const { email } = req.body;
+  try {
+    if (!email) throw new Error('Email is required');
+
+    const user = await User.findOne({ email });
+    if (!user || user.roleStatus !== 'Approved') {
+      throw new Error('User not found or not approved');
     }
-    try {
-        const payload = verifyToken(token);
-        const user = await User.findById(payload.id);
-        if (!user) throw Error('Invalid token or user');
 
-        //one time use check
-        if (payload.version !== user.resetTokenVersion) {
-            throw Error('This reset link has already been used.');
-        }
+    const resetToken = createToken(user._id, process.env.RESET_SECRET, '10h');
+    const otp = Math.floor(100000 + Math.random() * 900000).toString();
 
-        //strength check
-        const emailLocal = user.email.split('@')[0];
-        const pwCheck = isStrongPassword(newPassword, emailLocal);
-        if (!pwCheck.valid) {
-            return res.status(400).json({ error: pwCheck.message });
-        }
+    user.resetPasswordToken = resetToken;
+    user.resetPasswordOtp = otp;
+    user.resetPasswordExpires = Date.now() + 10 * 60 * 1000; // 10 minutes
+    await user.save({ validateBeforeSave: false });
 
-        //hash and save
-        const salt = await bcrypt.genSalt(10);
-        user.password = await bcrypt.hash(newPassword, salt);
-        user.resetTokenVersion += 1;
-        await user.save();
+    const transporter = nodemailer.createTransport({
+      service: 'gmail',
+      auth: { user: process.env.EMAIL_USER, pass: process.env.EMAIL_PASS },
+    });
 
-        res.json({ message: 'Password has been reset' });
-    } catch (error) {
-        if (error.name === 'TokenExpiredError') {
-            return res.status(400).json({ error: 'Reset link has expired. Please request a new one.' })
-        }
-        if (error.name === 'JsonWebTokenError') {
-            return res.status(400).json({ error: 'Invalid reset link. Please request a new one.' })
-        }
-        return res.status(400).json({ error: error.message });
-    }
+    const mailOptions = {
+      from: process.env.EMAIL_USER,
+      to: user.email,
+      subject: 'Password Reset OTP',
+      text: `Your OTP for password reset is: ${otp}`,
+    };
+
+    await transporter.sendMail(mailOptions);
+
+    res.status(200).json({
+      message: 'OTP sent to your email.',
+      resetToken,
+    });
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
 };
 
-/**
- * @route   POST /api/auth/changePassword
- * @desc    Change password for logged-in users
- */
-const changePassword = async (req, res) => {
-    const { oldPassword, newPassword, confirmPassword } = req.body;
-    const user = await User.findById(req.user.id);
-    if (!user) {
-        return res.status(404).json({ error: 'User not found' });
-    }
+// Verify OTP
+const verifyOtp = async (req, res) => {
+  const { email, otp } = req.body;
+  try {
+    if (!email || !otp) throw new Error('Email and OTP are required');
 
-    const match = await bcrypt.compare(oldPassword, user.password);
-    if (!match) {
-        return res.status(400).json({ error: 'Old password incorrect' });
-    }
+    const user = await User.findOne({ email });
+    if (!user) throw new Error('User not found');
+    if (user.resetPasswordOtp !== otp) throw new Error('Invalid OTP');
+    if (user.resetPasswordExpires < Date.now()) throw new Error('OTP has expired');
 
+    res.status(200).json({ message: 'OTP verified successfully.' });
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
+};
+
+// Reset password using token and OTP
+const resetPasswordWithToken = async (req, res) => {
+  const { token } = req.params;
+  const { otp, newPassword, confirmPassword } = req.body;
+
+  try {
+    if (!token || !otp || !newPassword || !confirmPassword) {
+      throw new Error('All fields are required.');
+    }
     if (newPassword !== confirmPassword) {
-        return res.status(400).json({ error: 'Passwords do not match.' });
+      throw new Error('Passwords do not match.');
     }
 
-    //strength check
-    const emailLocal = user.email.split('@')[0];
-    const pwCheck = isStrongPassword(newPassword, emailLocal);
-    if (!pwCheck.valid) {
-        return res.status(400).json({ error: pwCheck.message });
-    }
+    const decoded = jwt.verify(token, process.env.RESET_SECRET);
+    const user = await User.findById(decoded.id);
 
-    const salt = await bcrypt.genSalt(10);
-    user.password = await bcrypt.hash(newPassword, salt);
+    if (!user) throw new Error('User not found');
+    if (user.resetPasswordOtp !== otp) throw new Error('Invalid OTP');
+    if (user.resetPasswordExpires < Date.now()) throw new Error('OTP has expired');
+
+    user.password = newPassword; // hashed by pre-save
+    user.resetPasswordToken = null;
+    user.resetPasswordOtp = null;
+    user.resetPasswordExpires = null;
+
     await user.save();
-    res.json({ message: MSG_PASSWORD_CHANGED });
+
+    res.status(200).json({ message: 'Password updated successfully.' });
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
 };
 
-const logoutUser = async (req, res) => {
-    res.
-        clearCookie('token', {
-            httpOnly: true,
-            secure: process.env.NODE_ENV == 'production',
-            sameSite: 'Strict',
-            path: '/'
-        }).json({ message: 'Logged out successfully' });
-}
-
-const getLanguages = async (req, res) => {
-    try {
-        const langs = await Language.find({}, 'code name').lean();
-        const languages = langs.map(({ code, name }) => ({ code, name }));
-        return res.status(200).json({ languages });
-    } catch (error) {
-        console.error('Error fetching languages:', error);
-        return res.status(500).json({ error: 'Could not load languages' })
+// Reset password with old password (logged-in user)
+const resetPassword = async (req, res) => {
+  const { email, oldPassword, newPassword, confirmPassword } = req.body;
+  try {
+    if (!email || !oldPassword || !newPassword || !confirmPassword) {
+      throw new Error('All fields must be filled.');
     }
-}
+    if (newPassword !== confirmPassword) {
+      throw new Error('Passwords do not match.');
+    }
+
+    const user = await User.findOne({ email });
+    if (!user) throw new Error('User not found.');
+
+    const isMatch = await user.comparePassword(oldPassword);
+    if (!isMatch) throw new Error('Incorrect old password.');
+
+    user.password = newPassword; // hashed by pre-save
+    await user.save();
+
+    res.status(200).json({ message: 'Password updated successfully.' });
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
+};
+
+// Delete account
+const deleteAccount = async (req, res) => {
+  const { email, password } = req.body;
+  try {
+    if (!email || !password) {
+      throw new Error('Email and password are required.');
+    }
+
+    const user = await User.findOne({ email });
+    if (!user) throw new Error('User not found.');
+
+    const isMatch = await bcrypt.compare(password, user.password);
+    if (!isMatch) throw new Error('Incorrect password.');
+
+    await User.deleteOne({ _id: user._id });
+
+    res.status(200).json({ message: 'Account deleted successfully.' });
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
+};
 
 module.exports = {
-    registerUser,
-    loginUser,
-    resetPassword,
-    setNewPassword,
-    changePassword,
-    logoutUser,
-    getLanguages
-}; 
+  registerUser,
+  loginUser,
+  forgotPassword,
+  verifyOtp,
+  resetPasswordWithToken,
+  resetPassword,
+  deleteAccount,
+};
