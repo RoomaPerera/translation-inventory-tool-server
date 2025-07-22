@@ -3,9 +3,9 @@
 require('dotenv').config();
 
 const express = require('express');
-const mongoose = require('mongoose');
 const cors = require('cors');
 const morgan = require('morgan');
+const connectDB = require('./src/config/db');
 
 // Import routes
 const authRoutes = require('./src/routes/authRoutes');
@@ -37,37 +37,28 @@ app.use('/api/tools', translationValidationRoutes);
 // Health check
 app.get('/', (req, res) => {
   res.status(200).send('API is running.');
-}) 
-//connect to db
-connectDB().then(() => {
-    const server = app.listen(port, () => {
-      console.log(`Server running on port ${port}`);
-      console.log(`API available at http://localhost:${port}/api`);
-      console.log(`Test endpoint at http://localhost:${port}/api/test`);
-    });
-    
-    // Graceful shutdown handlers
-    process.once('SIGUSR2', () => {
-      server.close(() => process.kill(process.pid, 'SIGUSR2'));
-    });
-    
-    process.on('SIGINT', () => {
-        server.close(() => process.exit(0));
-    });
 });
 
-// Error handling middleware (last)
+// Error handling middleware (last before server start)
 app.use(errorHandler);
 
 // Connect to MongoDB and start server
 const PORT = process.env.PORT || 5000;
 
-mongoose
-  .connect(process.env.MONGO_URI, { useNewUrlParser: true, useUnifiedTopology: true })
+connectDB()
   .then(() => {
-    console.log('🔥 MongoDB connected successfully');
-    app.listen(PORT, () => {
+    const server = app.listen(PORT, () => {
       console.log(`🔥 Server running on port ${PORT}`);
+      console.log(`API available at http://localhost:${PORT}/api`);
+    });
+
+    // Graceful shutdown handlers
+    process.once('SIGUSR2', () => {
+      server.close(() => process.kill(process.pid, 'SIGUSR2'));
+    });
+
+    process.on('SIGINT', () => {
+      server.close(() => process.exit(0));
     });
   })
   .catch((error) => {
