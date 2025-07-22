@@ -14,9 +14,18 @@ const revisionRoutes = require('./routes/revisionRoutes');
 const cookieParser = require('cookie-parser');
 const requireAuth = require('./middleware/requireAuth');
 const fuzzyRoutes = require('./routes/fuzzyRoutes');
+const Scheduler = require('./utils/scheduler');
+const logger = require('./middleware/logger');
 
 //express app
 const app = express();
+
+
+// Import models to register schemas
+require('./models/User');
+require('./models/UserActivity');
+require('./models/Anomaly');
+
 
 // Connect to MongoDB
 mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/notification');
@@ -27,6 +36,14 @@ app.use(cors({
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
   credentials: true
 }));
+
+app.use(express.json());
+app.use(cookieParser());
+app.use(logger); //  log all requests
+app.use((req, res, next) => {
+    console.log(`${new Date().toISOString()} - ${req.method} ${req.path}`);
+    next();
+});
 
 // Parse JSON
 app.use(express.json());
@@ -41,6 +58,14 @@ app.use('/api/developer', requireAuth,developerRoutes);
 app.use('/api/translations', requireAuth,translationRoutes); 
 app.use('/api/translations', requireAuth, revisionRoutes);
 app.use('/api', fuzzyRoutes); 
+app.use('/api/activitylogs', require('./routes/activityLogRoutes'));
+app.use('/api/auth', require('./routes/auth'));
+app.use('/api/anomalies', require('./routes/anomalies'));
+
+
+// Start anomaly detection
+Scheduler.start();
+
 
 // Error handling middleware
 app.use((err, req, res, next) => {
@@ -49,8 +74,7 @@ app.use((err, req, res, next) => {
     message: err.message || 'Internal Server Error',
     error: process.env.NODE_ENV === 'development' ? err : {}
   });
-});app.use('/api/activitylogs', require('./routes/activityLogRoutes'));
-
+});
 
 
 module.exports = app; 
