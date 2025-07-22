@@ -8,4 +8,3 @@ router.post('/', requireAuth, addActivityLog);
 router.get('/', requireAuth, getActivityLogs);
 
 module.exports = router;
-
