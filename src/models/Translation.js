@@ -1,5 +1,5 @@
 //TranslationModel
-//const { text } = require("express");
+
 const { default: mongoose } = require("mongoose");
 
 const revisionSchema = new mongoose.Schema({
@@ -19,6 +19,8 @@ const translationSchema = new mongoose.Schema({
     language: { type: String, required: true },
     translatedText: { type: String, required: true },
     product: { type: String, required: true },
+    projectId: { type: mongoose.Schema.Types.ObjectId, ref: 'Project', required: true },
+    context: { type: String },
     status: { type: String, enum: ['pending', 'completed'], default: 'pending' }, // needs to be approved as well
     createdBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true }, // , required: true added newly
     createdAt: { type: Date, default: Date.now },
@@ -52,5 +54,6 @@ translationSchema.methods.checkVersionConflict = function (clientVersion) {
 translationSchema.methods.getCurrentVersion = function () {
     return this.version;
 }
+
 
 module.exports = mongoose.model('Translation', translationSchema);

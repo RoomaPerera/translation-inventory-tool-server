@@ -27,6 +27,8 @@ connectDB().then(() => {
 
     server.listen(port, () => {
         console.log(`Server running on port ${port}`);
+        console.log(`API available at http://localhost:${port}/api`);
+        console.log(`Test endpoint at http://localhost:${port}/api/test`);
     });
 
     process.once('SIGUSR2', () => {
