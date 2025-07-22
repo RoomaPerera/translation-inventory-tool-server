@@ -1,5 +1,11 @@
+
 const mongoose = require('mongoose');
-const bcrypt = require('bcryptjs');
+
+const bcrypt = require('bcrypt');
+const dns = require('dns').promises;
+const zxcvbn = require('zxcvbn');
+const Schema = mongoose.Schema
+
 
 const userSchema = new mongoose.Schema({
   name: { type: String, required: true },
@@ -25,14 +31,6 @@ userSchema.methods.comparePassword = async function(password) {
   return await bcrypt.compare(password, this.password);
 };
 
-// Static login method
-userSchema.statics.login = async function(email, password) {
-  const user = await this.findOne({ email });
-  if (!user) throw Error('Invalid email or password');
-  const isMatch = await user.comparePassword(password);
-  if (!isMatch) throw Error('Invalid email or password');
-  return user;
-};
 
 // Static register method
 userSchema.statics.register = async function(userName, email, password, role, languages) {
@@ -49,6 +47,7 @@ userSchema.statics.register = async function(userName, email, password, role, la
   return user;
 };
 
+
 // Password strength utility
 function isStrongPassword(password, emailLocal) {
   if (password.length < 8) return { valid: false, message: 'Password must be at least 8 characters.' };
@@ -58,6 +57,23 @@ function isStrongPassword(password, emailLocal) {
     return { valid: false, message: 'Password must contain letters and numbers.' };
   return { valid: true };
 }
+
+//static login method
+userSchema.statics.login = async function (email, password) {
+    if (!email || !password) {
+        throw Error('All fields must be filled');
+    }
+    const normalizedEmail = email.toLowerCase().trim();
+
+    const user = await this.findOne({ email: normalizedEmail })
+    if (!user) {
+        throw Error('Incorrect Email');
+    }
+    if (user.roleStatus !== 'Approved') {
+        throw Error('Not an approved user');
+    }
+    const match = await bcrypt.compare(password, user.password);
+
 
 const User = mongoose.model('User', userSchema);
 

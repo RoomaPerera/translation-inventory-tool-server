@@ -1,12 +1,17 @@
+
 require('dotenv').config();
 const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
+const cookieParser = require('cookie-parser');
+const requireAuth = require('./middleware/requireAuth');
+const errorHandler = require('./middleware/errorMiddleware');
 
+// Import all primary route handlers
 const authRoutes = require('./routes/authRoutes');
 const userRoutes = require('./routes/userRoutes');
+
 const projectRoutes = require('./routes/projectRoutes');
-const languageRoutes = require('./routes/languageRoutes');
 const adminRoutes    = require('./routes/adminRoutes'); 
 const developerRoutes = require('./routes/developerRoutes'); 
 const translationRoutes = require('./routes/translationRoutes');
@@ -16,9 +21,15 @@ const requireAuth = require('./middleware/requireAuth');
 const fuzzyRoutes = require('./routes/fuzzyRoutes');
 const Scheduler = require('./utils/scheduler');
 const logger = require('./middleware/logger');
+const translationRoutes = require('./routes/translationRoutes'); 
+const bulkRoutes = require('./routes/bulkOperations');
+const nlpRoutes = require('./routes/nlpRoutes');
+const languageRoutes = require('./routes/languageRoutes');
 
-//express app
+
+// Express app initialization
 const app = express();
+
 
 
 // Import models to register schemas
@@ -27,23 +38,24 @@ require('./models/UserActivity');
 require('./models/Anomaly');
 
 
-// Connect to MongoDB
-mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/notification');
 
-// Enable CORS BEFORE routes
+// Middleware setup
 app.use(cors({
-  origin: 'http://localhost:5173',
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
-  credentials: true
+    origin: process.env.FRONTEND_URL || 'http://localhost:5173',
+    credentials: true,
+
 }));
 
 app.use(express.json());
 app.use(cookieParser());
+
 app.use(logger); //  log all requests
+
 app.use((req, res, next) => {
     console.log(`${new Date().toISOString()} - ${req.method} ${req.path}`);
     next();
 });
+
 
 // Parse JSON
 app.use(express.json());
@@ -61,7 +73,7 @@ app.use('/api', fuzzyRoutes);
 app.use('/api/activitylogs', require('./routes/activityLogRoutes'));
 app.use('/api/auth', require('./routes/auth'));
 app.use('/api/anomalies', require('./routes/anomalies'));
-
+app.use('/api/nlp', requireAuth, nlpRoutes);
 
 // Start anomaly detection
 Scheduler.start();
@@ -76,5 +88,8 @@ app.use((err, req, res, next) => {
   });
 });
 
+
+// Global Error Handler Middleware
+app.use(errorHandler);
 
 module.exports = app; 

@@ -1,9 +1,15 @@
+
 const express = require('express');
-const Translation = require('../models/Translation');
+const router = express.Router();
+const revisionRoutes = require('./revisionRoutes'); // Import the sub-router
+
+// Import all necessary translation controller functions
 const {
     addTranslation,
     updateTranslation,
     getTranslations,
+     editTranslationText,
+    deleteTranslation,
     approveTranslation  
 } = require('../controllers/translationController');
 
@@ -55,12 +61,31 @@ router.get('/', async (req, res) => {
   }
 });
 
-// ✅ These lines are fine as they allow controller-based handling
-router.post('/', addTranslation);
-router.put('/:id', updateTranslation);
+// ✅ These lines are fine as they allow controller-based handlin
+  
+// GET all translations with optional filtering
+// Handles GET /api/translations
 router.get('/', getTranslations);
+
+router.post('/', addTranslation);
+
+// PUT an update to a translation's text or status
+// Handles PUT /api/translations/:id
+router.put('/:id', updateTranslation);
+
 
 // ✅ Approve translation (admin-only)
 router.put('/approve/:id', checkAdmin, approveTranslation);  // ✅ PROTECTED
+
+// PATCH for specifically editing text, which creates a revision
+// Handles PATCH /api/translations/edit
+router.patch('/edit', editTranslationText);
+
+
+// === Sub-Router for Revisions ===
+// Any request starting with /api/translations/revisions will be passed to revisionRoutes.js
+router.use('/revisions', revisionRoutes);
+
+router.delete('/:id', deleteTranslation);
 
 module.exports = router;

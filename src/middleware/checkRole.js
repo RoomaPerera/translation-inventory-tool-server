@@ -10,6 +10,7 @@ const checkAdmin = (req, res, next) => {
   };
   
   module.exports = checkAdmin;
+
   // Checks if the user's role is allowed to access the route
 const checkRole = (allowedRoles) => {
     return (req, res, next) => {
@@ -24,4 +25,3 @@ const checkRole = (allowedRoles) => {
   };
   
   module.exports = checkRole;
-  

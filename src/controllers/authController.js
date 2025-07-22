@@ -84,6 +84,7 @@ const loginUser = async (req, res) => {
     try {
         const user = await User.login(email, password);
         const token = createToken({ id: user._id, role: user.role });
+
         // Prepare user object for frontend
         const userObj = {
             id: user._id,
@@ -103,16 +104,33 @@ const loginUser = async (req, res) => {
             details: { email }
         });
         // send token as HTTP only secure cookie
+
+        
+        // THE FIX IS HERE: We now return the full user object
+        const userData = {
+            _id: user._id,       // Needed for API calls like assigning languages
+            userName: user.userName, // For the sidebar
+            email: user.email,
+            role: user.role,       // For the sidebar
+            languages: user.languages // For the language modal
+        };
+
+        // Send token as an HTTP-only secure cookie
+
         res.cookie('token', token, {
             httpOnly: true,
             secure: process.env.NODE_ENV === 'production',
             sameSite: 'Strict',
+
+            path: '/',
             maxAge: 2 * 60 * 60 * 1000 //2 hours in ms
         }).status(200).json({
             user: userObj,
             token,
+            userData,
             message: 'Login successful'
         });
+
     } catch (error) {
         // Log failed login
         await UserActivity.create({
