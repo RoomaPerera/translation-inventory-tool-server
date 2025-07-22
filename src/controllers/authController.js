@@ -1,4 +1,3 @@
-//authController
 // handles user authentication, registration, and password workflow
 const User = require('../models/User');
 const bcrypt = require('bcrypt');
@@ -84,8 +83,6 @@ const loginUser = async (req, res) => {
     }
     try {
         const user = await User.login(email, password);
-        user.lastActivity = Date.now();
-        await user.save();
         const token = createToken({ id: user._id, role: user.role });
 
         // Prepare user object for frontend
@@ -108,7 +105,7 @@ const loginUser = async (req, res) => {
         });
         // send token as HTTP only secure cookie
 
-
+        
         // THE FIX IS HERE: We now return the full user object
         const userData = {
             _id: user._id,       // Needed for API calls like assigning languages
@@ -144,38 +141,6 @@ const loginUser = async (req, res) => {
             details: { email }
         });
         res.status(400).json({ error: error.message });
-    }
-};
-
-/**
- * @route   GET /api/auth/me
- * @desc    Get current user info (verify authentication)
- */
-const getCurrentUser = async (req, res) => {
-    try {
-        // req.user is set by requireAuth middleware
-        if (!req.user) {
-            return res.status(401).json({ error: 'Not authenticated' });
-        }
-
-        const user = await User.findById(req.user.id).select('-password');
-        if (!user) {
-            return res.status(404).json({ error: 'User not found' });
-        }
-
-        res.status(200).json({
-            user: {
-                id: user._id,
-                email: user.email,
-                userName: user.userName,
-                role: user.role,
-                // Include any other user fields you need on the frontend
-                languages: user.languages
-            }
-        });
-    } catch (error) {
-        console.error('getCurrentUser error:', error);
-        res.status(500).json({ error: 'Server error' });
     }
 };
 
@@ -316,6 +281,5 @@ module.exports = {
     setNewPassword,
     changePassword,
     logoutUser,
-    getLanguages,
-    getCurrentUser
-};
+    getLanguages
+}; 

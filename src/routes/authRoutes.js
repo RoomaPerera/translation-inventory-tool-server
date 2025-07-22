@@ -7,8 +7,7 @@ const {
     changePassword,
     setNewPassword,
     logoutUser,
-    getLanguages,
-    getCurrentUser
+    getLanguages
 } = require('../controllers/authController');
 const requireAuth = require('../middleware/requireAuth');
 const rateLimit = require('express-rate-limit');
@@ -34,6 +33,5 @@ router.get('/getLanguages', getLanguages);
 //protected routes
 router.post('/changePassword', requireAuth, changePassword);
 router.get('/logout', requireAuth, logoutUser);
-router.get('/me', requireAuth, getCurrentUser);
 
 module.exports = router;
