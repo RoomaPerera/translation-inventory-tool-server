@@ -2,13 +2,20 @@ require('dotenv').config();
 const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
-const Scheduler = require('./utils/scheduler');
 
-// Import models to register schemas
-require('./models/User');
-require('./models/UserActivity');
-require('./models/Anomaly');
+const authRoutes = require('./routes/authRoutes');
+const userRoutes = require('./routes/userRoutes');
+const projectRoutes = require('./routes/projectRoutes');
+const languageRoutes = require('./routes/languageRoutes');
+const adminRoutes    = require('./routes/adminRoutes'); 
+const developerRoutes = require('./routes/developerRoutes'); 
+const translationRoutes = require('./routes/translationRoutes');
+const revisionRoutes = require('./routes/revisionRoutes');
+const cookieParser = require('cookie-parser');
+const requireAuth = require('./middleware/requireAuth');
+const fuzzyRoutes = require('./routes/fuzzyRoutes');
 
+//express app
 const app = express();
 
 // Connect to MongoDB
@@ -25,10 +32,25 @@ app.use(cors({
 app.use(express.json());
 
 // Routes
-app.use('/api/auth', require('./routes/auth'));
-app.use('/api/anomalies', require('./routes/anomalies'));
+app.use('/api/auth', authRoutes);
+app.use('/api/users', requireAuth,userRoutes);
+app.use('/api/projects', requireAuth,projectRoutes);
+app.use('/api/languages', requireAuth,languageRoutes);
+app.use('/api/admin', requireAuth,adminRoutes);  
+app.use('/api/developer', requireAuth,developerRoutes);   
+app.use('/api/translations', requireAuth,translationRoutes); 
+app.use('/api/translations', requireAuth, revisionRoutes);
+app.use('/api', fuzzyRoutes); 
 
-// Start anomaly detection
-Scheduler.start();
+// Error handling middleware
+app.use((err, req, res, next) => {
+  console.error('Global error handler:', err);
+  res.status(err.status || 500).json({
+    message: err.message || 'Internal Server Error',
+    error: process.env.NODE_ENV === 'development' ? err : {}
+  });
+});app.use('/api/activitylogs', require('./routes/activityLogRoutes'));
+
+
 
 module.exports = app; 
