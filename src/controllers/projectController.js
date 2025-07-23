@@ -1,5 +1,4 @@
 const Project = require('../models/Project');
-const { notifyNewProject } = require('../utils/notificationService');
 
 // REQ-16: Add New Project
 const addProject = async (req, res) => {
@@ -25,12 +24,9 @@ const addProject = async (req, res) => {
     });
 
     await newProject.save();
-    // Send notification to relevant translators
-    await notifyNewProject(newProject);
-
     res.status(201).json({ message: 'Project added successfully.', project: newProject });
   } catch (error) {
-    console.error('🔥 Error creating project:', error);
+    console.error('Error creating project:', error);
     res.status(500).json({
       message: 'Error creating project',
       error: error.message || error,
@@ -102,6 +98,73 @@ const assignLanguagesToProject = async (req, res) => {
   }
 };
 
+// Get languages for a specific project
+const getProjectLanguages = async (req, res) => {
+  try {
+    console.log('Backend: Getting languages for project ID:', req.params.id);
+    const project = await Project.findById(req.params.id);
+    if (!project) {
+      console.log('Backend: Project not found with ID:', req.params.id);
+      return res.status(404).json({ message: 'Project not found' });
+    }
+
+    console.log('Backend: Found project:', project.name);
+    console.log('Backend: Project languages (raw):', project.languages);
+
+    // If no languages assigned, return empty array
+    if (!project.languages || project.languages.length === 0) {
+      console.log('Backend: No languages assigned to this project');
+      return res.status(200).json({
+        projectId: project._id,
+        projectName: project.name,
+        languages: []
+      });
+    }
+
+    // Import Language model to populate language data
+    const Language = require('../models/Language');
+    
+    // Check if the stored values are ObjectIds or language codes/names
+    const mongoose = require('mongoose');
+    let languageObjects = [];
+    
+    // Try to determine if we have ObjectIds or language codes
+    const firstLanguage = project.languages[0];
+    console.log('Backend: First language value:', firstLanguage, 'Type:', typeof firstLanguage);
+    
+    if (mongoose.Types.ObjectId.isValid(firstLanguage) && firstLanguage.length === 24) {
+      // These look like ObjectIds
+      console.log('Backend: Languages appear to be ObjectIds, searching by _id');
+      languageObjects = await Language.find({
+        '_id': { $in: project.languages }
+      });
+    } else {
+      // These are likely language codes or names
+      console.log('Backend: Languages appear to be codes/names, searching by code and name');
+      languageObjects = await Language.find({
+        $or: [
+          { 'code': { $in: project.languages } },
+          { 'name': { $in: project.languages } }
+        ]
+      });
+    }
+
+    console.log('Backend: Found language objects:', languageObjects);
+
+    const response = {
+      projectId: project._id,
+      projectName: project.name,
+      languages: languageObjects
+    };
+
+    console.log('Backend: Sending response:', response);
+    res.status(200).json(response);
+  } catch (err) {
+    console.error('Backend Error fetching project languages:', err);
+    res.status(500).json({ error: err.message });
+  }
+};
+
 module.exports = {
   addProject,
   getAllProjects,
@@ -109,4 +172,5 @@ module.exports = {
   updateProject,
   deleteProject,
   assignLanguagesToProject,
+  getProjectLanguages,
 };

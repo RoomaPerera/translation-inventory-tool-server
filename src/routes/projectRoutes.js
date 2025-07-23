@@ -6,7 +6,8 @@ const {
   getProjectById,
   updateProject,
   deleteProject,
-  assignLanguagesToProject
+  assignLanguagesToProject,
+  getProjectLanguages
 } = require('../controllers/projectController');
 
 // POST: Add new project
@@ -24,7 +25,11 @@ router.put('/:id', updateProject);
 // DELETE: Delete a project
 router.delete('/:id', deleteProject);
 
+// GET: Get languages for a project
+router.get('/:id/languages', getProjectLanguages);
+
 // POST: Assign languages to project
 router.post('/:id/languages', assignLanguagesToProject);
+
 
 module.exports = router;
