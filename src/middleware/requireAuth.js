@@ -26,7 +26,7 @@ const requireAuth = async (req, res, next) => {
         console.log('Decoded payload:', payload);
     } catch (error) {
         console.log('JWT verify error: ', error.message);
-        res.status(401).json({ error: 'Request is not Authorized' });
+        return res.status(401).json({ error: 'Request is not Authorized' });
     }
 
     //enforce inactivity and absolute session expiry

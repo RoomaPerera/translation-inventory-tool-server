@@ -1,5 +1,10 @@
 const Project = require('../models/Project');
 
+const { notifyNewProject } = require('../utils/notificationService');
+const ActivityLog = require('../models/ActivityLog');
+const User = require('../models/User');
+
+
 // REQ-16: Add New Project
 const addProject = async (req, res) => {
     try {
@@ -23,15 +28,50 @@ const addProject = async (req, res) => {
             createdBy,
         });
 
-        await newProject.save();
-        res.status(201).json({ message: 'Project added successfully.', project: newProject });
-    } catch (error) {
-        console.error('Error creating project:', error);
-        res.status(500).json({
-            message: 'Error creating project',
-            error: error.message || error,
-        });
+
+    // Flatten languages array if needed
+    const flattenedLanguages = Array.isArray(languages) && languages.some(Array.isArray)
+      ? languages.flat()
+      : languages;
+
+    const newProject = new Project({
+      name,
+      description,
+      languages: flattenedLanguages,
+      createdBy,
+    });
+
+    await newProject.save();
+    // Send notification to relevant translators
+    await notifyNewProject(newProject);
+    // --- Activity Log: User creates project ---
+    try {
+      const userId = req.user?.id;
+      const userRole = req.user?.role;
+      if (userId && userRole) {
+        const user = await User.findById(userId).select('userName');
+        if (user) {
+          await ActivityLog.create({
+            userId,
+            userName: user.userName,
+            role: userRole.toLowerCase(),
+            description: `Created a new project: ${name}`
+          });
+        }
+      }
+    } catch (logErr) {
+      console.error('ActivityLog error (addProject):', logErr);
     }
+
+    res.status(201).json({ message: 'Project added successfully.', project: newProject });
+  } catch (error) {
+    console.error('🔥 Error creating project:', error);
+    res.status(500).json({
+      message: 'Error creating project',
+      error: error.message || error,
+    });
+  }
+
 };
 
 // Get all projects

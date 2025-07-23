@@ -131,8 +131,11 @@ const loginUser = async (req, res) => {
 
             path: '/',
             maxAge: 2 * 60 * 60 * 1000 //2 hours in ms
+
         }).status(200).json({
             user: userObj,
+            userName: user.userName,
+            role: user.role,
             email,
             token,
             userData,

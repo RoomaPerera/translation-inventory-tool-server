@@ -46,6 +46,8 @@ app.use((req, res, next) => {
     console.log(`${new Date().toISOString()} - ${req.method} ${req.path}`);
     next();
 });
+app.use('/api/activitylogs', require('./routes/activityLogRoutes'));
+
 
 // Parse JSON
 app.use(express.json());
@@ -70,6 +72,7 @@ Scheduler.start();
 
 // Error handling middleware
 app.use((err, req, res, next) => {
+
     console.error('Global error handler:', err);
     res.status(err.status || 500).json({
         message: err.message || 'Internal Server Error',
@@ -79,5 +82,6 @@ app.use((err, req, res, next) => {
 
 // Global Error Handler Middleware
 app.use(errorHandler);
+
 
 module.exports = app; 
