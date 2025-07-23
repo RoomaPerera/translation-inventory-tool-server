@@ -1,6 +1,5 @@
 const axios = require('axios');
 const Translation = require('../models/Translation');
-
 const NLP_SERVICE_URL = 'http://localhost:8000';
 
 
@@ -49,26 +48,6 @@ exports.extractGlossary = async (req, res) => {
         console.error("Glossary Error:", error.response ? error.response.data : error.message);
         res.status(500).json({ error: "Glossary extraction failed" });
     }
-=======
-// This function does not need changes.
-exports.suggestTranslations = async (req, res, next) => {
-  try {
-    const { text, product } = req.body;
-    if (!text || !product) {
-      return res.status(400).json({ error: "Text and product are required." });
-    }
-    const existingTranslations = await Translation.find({
-        product: product,
-        status: 'approved',
-    }).lean();
-    const response = await axios.post(`${NLP_SERVICE_URL}/suggest`, {
-      text: text,
-      translations: existingTranslations
-    });
-    res.status(200).json(response.data);
-  } catch (error) {
-    next(error);
-  }
 };
 
 exports.extractGlossary = async (req, res, next) => {
@@ -124,3 +103,4 @@ exports.extractGlossary = async (req, res, next) => {
     console.error("Glossary Error:", error);
     next(error);
   }
+};
