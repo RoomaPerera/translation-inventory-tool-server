@@ -1,6 +1,8 @@
+//authController
 // handles user authentication, registration, and password workflow
 const User = require('../models/User');
 const bcrypt = require('bcrypt');
+const BlockedIP = require('../models/BlockedIP');
 const {
     createToken,
     createShortToken,
@@ -12,6 +14,8 @@ const { getAllowedLanguageCodes } = require('../utils/languageHelper');
 const { isStrongPassword } = require('../models/User');
 const { frontendURL } = require('../config/config');
 const Language = require('../models/Language');
+const UserActivity = require('../models/UserActivity');
+
 
 // Constants for expiry and messages
 const PASSWORD_RESET_EXPIRY_MINUTES = 15;
@@ -26,6 +30,12 @@ const ALLOWED_SELF_ROLES = ['Translator', 'Developer', 'Admin'];
 const registerUser = async (req, res) => {
     console.log('[registerUser] req.body =', req.body);
     const { userName, email, password, role, languages } = req.body;
+    // --- IP BLOCK CHECK ---
+    const ip = req.ip || req.connection.remoteAddress;
+    const blocked = await BlockedIP.findOne({ ip });
+    if (blocked) {
+        return res.status(403).json({ error: 'Your IP is blocked.' });
+    }
     if (!ALLOWED_SELF_ROLES.includes(role)) {
         return res.status(400).json({ error: `You may only self‑register as: ${ALLOWED_SELF_ROLES.join(', ')}` });
     }
@@ -67,25 +77,114 @@ const registerUser = async (req, res) => {
  */
 const loginUser = async (req, res) => {
     const { email, password } = req.body;
+    // --- IP BLOCK CHECK ---
+    const ip = req.ip || req.connection.remoteAddress;
+    const blocked = await BlockedIP.findOne({ ip });
+    if (blocked) {
+        return res.status(403).json({ error: 'Your IP is blocked.' });
+    }
     try {
         const user = await User.login(email, password);
+        user.lastActivity = Date.now();
+        await user.save();
         const token = createToken({ id: user._id, role: user.role });
+
+
+        // Prepare user object for frontend
+        const userObj = {
+            id: user._id,
+            name: user.name,
+            email: user.email,
+            role: user.role,
+            lastLogin: user.lastLogin,
+            isActive: user.isActive,
+            languages: user.languages || [],
+        };
+        // Log successful login
+        await UserActivity.create({
+            user: user._id,
+            type: 'login',
+            success: true,
+            ip,
+            details: { email }
+        });
         // send token as HTTP only secure cookie
+
+
+        // THE FIX IS HERE: We now return the full user object
+        const userData = {
+            _id: user._id,       // Needed for API calls like assigning languages
+            userName: user.userName, // For the sidebar
+            email: user.email,
+            role: user.role,       // For the sidebar
+            languages: user.languages // For the language modal
+        };
+
+        // Send token as an HTTP-only secure cookie
+
+
         res.cookie('token', token, {
             httpOnly: true,
             secure: process.env.NODE_ENV === 'production',
             sameSite: 'Strict',
+
+
+            path: '/',
             maxAge: 2 * 60 * 60 * 1000 //2 hours in ms
-        })
-        // --- FIX: include token and user info in response ---
-        .status(200).json({
-            email: user.email,
+
+        }).status(200).json({
+            user: userObj,
             userName: user.userName,
             role: user.role,
-            token // <--- include the token here!
+            email,
+            token,
+            userData,
+            message: 'Login successful'
+        });
+
+
+    } catch (error) {
+        // Log failed login
+        await UserActivity.create({
+            user: null,
+            type: 'failed_login',
+            success: false,
+            ip,
+            details: { email }
+        });
+        res.status(400).json({ error: error.message });
+    }
+};
+
+/**
+ * @route   GET /api/auth/me
+ * @desc    Get current user info (verify authentication)
+ */
+const getCurrentUser = async (req, res) => {
+    try {
+        // req.user is set by requireAuth middleware
+        if (!req.user) {
+            return res.status(401).json({ error: 'Not authenticated' });
+        }
+
+        const user = await User.findById(req.user.id).select('-password');
+        if (!user) {
+            return res.status(404).json({ error: 'User not found' });
+        }
+
+        res.status(200).json({
+            user: {
+                id: user._id,
+                email: user.email,
+                userName: user.userName,
+                role: user.role,
+                // Include any other user fields you need on the frontend
+                languages: user.languages
+            }
         });
     } catch (error) {
-        res.status(400).json({ error: error.message });
+        console.error('getCurrentUser error:', error);
+        res.status(500).json({ error: 'Server error' });
     }
 };
 
@@ -226,5 +325,6 @@ module.exports = {
     setNewPassword,
     changePassword,
     logoutUser,
-    getLanguages
+    getLanguages,
+    getCurrentUser
 };

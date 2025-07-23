@@ -45,6 +45,13 @@ const requireAuth = async (req, res, next) => {
             console.log('User not found for payload.id:', payload.id);
             return res.status(401).json({ error: 'User not found' });
         }
+        const now = Date.now();
+        const elapsed = now - new Date(user.lastActivity).getTime();
+        if (elapsed > INACTIVITY_LIMIT_MS) {
+            return res.status(401).json('Session Expired due to inactivity');
+        }
+        user.lastActivity = now;
+        await user.save();
         req.user = { id: user._id, role: user.role };
         const newToken = createToken({ id: user._id, role: user.role });
         res.cookie('token', newToken, {

@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 
+
 const {
     addLanguage,
     getAllLanguages,
@@ -23,5 +24,10 @@ router.put('/:id', updateLanguage);
 
 // Delete a language
 router.delete('/:id', deleteLanguage);
+
+const { getLanguages } = require('../controllers/authController');
+
+// This route will handle GET /api/languages, which the frontend expects.
+router.get('/', getLanguages);
 
 module.exports = router;
