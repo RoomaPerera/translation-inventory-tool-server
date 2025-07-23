@@ -27,8 +27,8 @@ require('./models/UserActivity');
 require('./models/Anomaly');
 
 
-// Connect to MongoDB
-mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/notification');
+//Connect to MongoDB
+//mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/notification');
 
 // Enable CORS BEFORE routes
 app.use(cors({
