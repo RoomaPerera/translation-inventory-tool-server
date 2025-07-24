@@ -24,7 +24,6 @@ adminRouter.get('/getUserList', getUserList);
 adminRouter.get('/filterUserList/:role', filterUserList);
 adminRouter.delete('/deleteRejectedUsers', deleteRejectedUsers);
 adminRouter.get('/getPendingUsers', getPendingUsers);
-adminRouter.post('/assign-languages/:id', modifyLanguages);
 
 router.use('/', requireRole('Admin'), adminRouter);
 
