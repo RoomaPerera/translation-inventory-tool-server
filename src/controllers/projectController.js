@@ -27,8 +27,16 @@ const addProject = async (req, res) => {
     });
 
     await newProject.save();
-    // Send notification to relevant translators
-    await notifyNewProject(newProject);
+    
+    // Send notification to relevant translators (non-blocking)
+    let notificationStatus = 'success';
+    try {
+      await notifyNewProject(newProject);
+    } catch (notificationError) {
+      console.error('Failed to send project notification emails:', notificationError);
+      notificationStatus = 'email_failed';
+    }
+    
     // --- Activity Log: User creates project ---
     try {
       const userId = req.user?.id;
@@ -48,9 +56,36 @@ const addProject = async (req, res) => {
       console.error('ActivityLog error (addProject):', logErr);
     }
 
-    res.status(201).json({ message: 'Project added successfully.', project: newProject });
+    // Return success response even if email notification failed
+    const response = { 
+      message: 'Project added successfully.', 
+      project: newProject,
+      notificationStatus 
+    };
+    
+    if (notificationStatus === 'email_failed') {
+      response.warning = 'Project created successfully, but email notifications could not be sent.';
+    }
+
+    res.status(201).json(response);
   } catch (error) {
     console.error('Error creating project:', error);
+    
+    // Provide more specific error messages
+    if (error.code === 11000) {
+      return res.status(409).json({
+        message: 'A project with this name already exists.',
+        error: 'Duplicate project name'
+      });
+    }
+    
+    if (error.name === 'ValidationError') {
+      return res.status(400).json({
+        message: 'Invalid project data provided.',
+        error: error.message
+      });
+    }
+    
     res.status(500).json({
       message: 'Error creating project',
       error: error.message || error,
