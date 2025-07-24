@@ -9,6 +9,7 @@ const adminRoutes    = require('./routes/adminRoutes');
 const developerRoutes = require('./routes/developerRoutes'); 
 const translationRoutes = require('./routes/translationRoutes');
 const revisionRoutes = require('./routes/revisionRoutes');
+const fuzzyRoutes = require('./routes/fuzzyRoutes');
 const cookieParser = require('cookie-parser');
 const requireAuth = require('./middleware/requireAuth');
 
@@ -50,6 +51,7 @@ app.use('/api/admin', requireAuth,adminRoutes);
 app.use('/api/developer', requireAuth,developerRoutes);   
 app.use('/api/translations', requireAuth,translationRoutes); 
 app.use('/api/translations', requireAuth, revisionRoutes);
+app.use('/api', fuzzyRoutes); 
 
 
 // Error handling middleware
