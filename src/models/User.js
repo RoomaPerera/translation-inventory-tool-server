@@ -56,7 +56,7 @@ function isValidEmail(email) {
     return emailRegex.test(email);
 }
 
-async function hasMaxRecord(email) {
+async function hasMxRecord(email) {
     const domain = email.split('@')[1];
     try {
         const records = await dns.resolveMx(domain);
@@ -93,7 +93,7 @@ function isStrongPassword(pw, emailLocalPart = "") {
     }
     if (pw.length < 12) {
         feedback.valid = false;
-        feedback.message = feedback.message || 'Password is should be more than 8 characters.';
+        feedback.message = feedback.message || 'Password must be more than 12 characters.';
         return feedback;
     }
     if (/\s/.test(pw)) {
@@ -159,7 +159,7 @@ userSchema.statics.register = async function (userName, email, password, role, l
     }
 
     //email domain check
-    const hasMx = await hasMaxRecord(email);
+    const hasMx = await hasMxRecord(email);
     if (!hasMx) {
         console.warn(`Warning: MX record not found for ${email}`);
     }

@@ -1,4 +1,3 @@
-
 const { verifyToken, createToken } = require('../utils/jwt');
 const User = require('../models/User');
 
@@ -26,7 +25,7 @@ const requireAuth = async (req, res, next) => {
         console.log('Decoded payload:', payload);
     } catch (error) {
         console.log('JWT verify error: ', error.message);
-        return res.status(401).json({ error: 'Request is not Authorized' });
+        res.status(401).json({ error: 'Request is not Authorized' });
     }
 
     //enforce inactivity and absolute session expiry

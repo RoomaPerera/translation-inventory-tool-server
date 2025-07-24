@@ -1,11 +1,7 @@
 // handles user authentication, registration, and password workflow
 const User = require('../models/User');
 const bcrypt = require('bcrypt');
-const {
-    createToken,
-    createShortToken,
-    verifyToken
-} = require('../utils/jwt');
+const { createToken, createShortToken, verifyToken } = require('../utils/jwt');
 const { sendMail } = require('../utils/mailer');
 const { resetPasswordTemplate } = require('../utils/emailTemplates');
 const { getAllowedLanguageCodes } = require('../utils/languageHelper');
@@ -50,11 +46,8 @@ const registerUser = async (req, res) => {
     if (userName.trim().length < 3) {
         return res.status(400).json({ error: 'Username must be at least 3 characters long.' })
     }
-    const cleanLanguages = Array.isArray(languages)
-        ? languages.filter(l => typeof l === 'string' && l.trim() !== '')
-        : [];
     try {
-        await User.register(userName.trim(), email.trim(), password, role, cleanLanguages);
+        await User.register(userName.trim(), email.trim(), password, role, req.body.languages || []);
         res.status(200).json({ message: 'Send to Approval' });
     } catch (error) {
         res.status(400).json({ error: error.message });
@@ -76,16 +69,45 @@ const loginUser = async (req, res) => {
             secure: process.env.NODE_ENV === 'production',
             sameSite: 'Strict',
             maxAge: 2 * 60 * 60 * 1000 //2 hours in ms
-        })
-        // --- FIX: include token and user info in response ---
-        .status(200).json({
+        }).status(200).json({
             email: user.email,
             userName: user.userName,
             role: user.role,
-            token // <--- include the token here!
         });
     } catch (error) {
         res.status(400).json({ error: error.message });
+    }
+};
+
+/**
+ * @route   GET /api/auth/me
+ * @desc    Get current user info (verify authentication)
+ */
+const getCurrentUser = async (req, res) => {
+    try {
+        // req.user is set by requireAuth middleware
+        if (!req.user) {
+            return res.status(401).json({ error: 'Not authenticated' });
+        }
+
+        const user = await User.findById(req.user.id).select('-password');
+        if (!user) {
+            return res.status(404).json({ error: 'User not found' });
+        }
+
+        res.status(200).json({
+            user: {
+                id: user._id,
+                email: user.email,
+                userName: user.userName,
+                role: user.role,
+                // Include any other user fields you need on the frontend
+                languages: user.languages // if applicable
+            }
+        });
+    } catch (error) {
+        console.error('getCurrentUser error:', error);
+        res.status(500).json({ error: 'Server error' });
     }
 };
 
@@ -202,10 +224,10 @@ const logoutUser = async (req, res) => {
     res.
         clearCookie('token', {
             httpOnly: true,
-            secure: process.env.NODE_ENV == 'production',
+            secure: process.env.NODE_ENV === 'production',
             sameSite: 'Strict',
             path: '/'
-        }).json({ message: 'Logged out successfully' });
+        }).status(200).json({ message: 'Logged out successfully' });
 }
 
 const getLanguages = async (req, res) => {
@@ -226,5 +248,6 @@ module.exports = {
     setNewPassword,
     changePassword,
     logoutUser,
-    getLanguages
+    getLanguages,
+    getCurrentUser
 };
