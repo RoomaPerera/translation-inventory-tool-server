@@ -1,116 +1,191 @@
+// controllers/translationController.js
+
 const Translation = require('../models/Translation');
 const { notifyNewTranslation } = require('../utils/notificationService');
-const ActivityLog = require('../models/ActivityLog');
 const User = require('../models/User');
+const { detectLanguageSimple } = require('../config/languageDetector');
+const TranslationCheckResult = require('../models/TranslationCheckResult');
 
-// Add a Translation
+
 exports.addTranslation = async (req, res, next) => {
-
     try {
-        const { translationKey, language, translatedText, product, createdBy } = req.body;
-        const newTranslation = new Translation({ translationKey, language, translatedText, product, createdBy });
+        const { translationKey, language, translatedText, product } = req.body;
+        const newTranslation = new Translation({
+            translationKey,
+            language,
+            translatedText,
+            product,
+            createdBy: req.user.id
+        });
         await newTranslation.save();
-        // Send notification to relevant translators
         await notifyNewTranslation({ language, text: translatedText });
-        // --- Activity Log: User adds translation ---
-        try {
-            const userId = req.user?.id;
-            const userRole = req.user?.role;
-            if (userId && userRole) {
-                const user = await User.findById(userId).select('userName');
-                if (user) {
-                    await ActivityLog.create({
-                        userId,
-                        userName: user.userName,
-                        role: userRole.toLowerCase(),
-                        description: `Added a new translation for key: ${translationKey} in language: ${language}`
-                    });
-                }
-            }
-        } catch (logErr) {
-            console.error('ActivityLog error (addTranslation):', logErr);
-        }
         res.status(201).json(newTranslation);
     } catch (error) {
+        console.error(error);
         next(error);
     }
-
 };
 
-// Update a Translation (edit text or status)
 exports.updateTranslation = async (req, res, next) => {
-  try {
-    const { translatedText, status, context } = req.body;
-    const updatedTranslation = await Translation.findByIdAndUpdate(
-      req.params.id,
-      {
-        ...(translatedText && { translatedText }),
-        ...(status && { status }),
-        ...(context && { context }),
-        updatedAt: Date.now()
-      },
-      { new: true }
-    );
-    if (!updatedTranslation) {
-      return res.status(404).json({ message: "Translation not found" });
+    try {
+        const { translatedText, status, context } = req.body;
+        const updatedTranslation = await Translation.findByIdAndUpdate(
+            req.params.id,
+            {
+                ...(translatedText && { translatedText }),
+                ...(status && { status }),
+                ...(context && { context }),
+                updatedAt: Date.now()
+            },
+            { new: true }
+        );
+
+        if (!updatedTranslation) {
+            return res.status(404).json({ message: "Translation not found" });
+        }
+
+        res.json(updatedTranslation);
+    } catch (error) {
+        console.error(error);
+        next(error);
     }
-    res.json(updatedTranslation);
-  } catch (error) {
-    next(error);
-  }
 };
 
-/**
- * Edit the translation text (by key + language), pushing old text into revisions
- */
 exports.editTranslationText = async (req, res, next) => {
     try {
-        const { _id, translatedText } = req.body;
-        const translation = await Translation.findOne({ _id });
+        const { id, translatedText } = req.body;
+        const translation = await Translation.findById(id);
+
         if (!translation) {
-            return res.status(404).json({ error: 'Translation not found for that key/language' });
+            return res.status(404).json({ error: 'Translation not found' });
         }
+
         await translation.addRevision(translatedText, req.user.id);
-        res.json(translation);
+
+        res.json({ message: 'Translation updated and revision saved', translation });
     } catch (error) {
+        console.error(error);
         next(error);
     }
-
 };
 
-
-// Fetch Translations with Filtering
-exports.getTranslations = async (req, res, next) => {
-  try {
-    const { product, language, word, key, status} = req.query;
-    const filter = {};
-    if (product) filter.product = product;
-    if (language) filter.language = language;
-    if (word) filter.translatedText = { $regex: word, $options: 'i' };
-    if (key) filter.translationKey = key;
-    if (status) filter.status = status;
-    
-    const translations = await Translation.find(filter);
-    res.json(translations);
-  } catch (error) {
-    next(error);
-  }
-};
-
-// ✅ Approve a Translation 
 exports.approveTranslation = async (req, res, next) => {
-  try {
-    const translation = await Translation.findById(req.params.id);
-    if (!translation) {
-      return res.status(404).json({ message: "Translation not found" });
+    try {
+        const translation = await Translation.findById(req.params.id);
+
+        if (!translation) {
+            return res.status(404).json({ message: "Translation not found" });
+        }
+
+        translation.status = 'approved';
+        translation.updatedAt = Date.now();
+        await translation.save();
+
+        res.status(200).json({ message: "Translation approved", translation });
+    } catch (error) {
+        console.error(error);
+        next(error);
     }
+};
 
-    translation.status = 'approved';
-    translation.updatedAt = Date.now();
-    await translation.save();
+exports.getTranslations = async (req, res, next) => {
+    try {
+        const page = parseInt(req.query.page, 10) || 1;
+        const limit = Math.min(parseInt(req.query.limit, 10) || 10, 100);
+        const skip = (page - 1) * limit;
 
-    res.status(200).json({ message: "Translation approved", translation });
-  } catch (error) {
-    next(error);
-  }
+        const { product, language, word, key, status } = req.query;
+        const filter = {};
+
+        if (product) filter.product = product;
+        if (language) filter.language = language;
+        if (word) filter.translatedText = { $regex: word, $options: 'i' };
+        if (key) filter.translationKey = key;
+        if (status) filter.status = status;
+
+        const [translations, totalItems] = await Promise.all([
+            Translation.find(filter)
+                .populate('createdBy', 'userName')
+                .sort({ createdAt: -1 })
+                .skip(skip)
+                .limit(limit)
+                .lean(),
+            Translation.countDocuments(filter)
+        ]);
+
+        res.json({
+            translations,
+            currentPage: page,
+            totalPages: Math.ceil(totalItems / limit),
+            totalItems
+        });
+    } catch (error) {
+        console.error(error);
+        next(error);
+    }
+};
+
+exports.deleteTranslation = async (req, res, next) => {
+    try {
+        const { id } = req.params;
+        const translation = await Translation.findByIdAndDelete(id);
+
+        if (!translation) {
+            return res.status(404).json({ error: 'Translation not found' });
+        }
+
+        res.status(200).json({ message: 'Translation deleted successfully', id });
+    } catch (error) {
+        console.error(error);
+        next(error);
+    }
+};
+
+const mockQualityScore = (input, output) => {
+    if (!output) return { score: "Poor", marks: 2 };
+    const inputLen = input.length;
+    const outputLen = output.length;
+    const lengthDiff = Math.abs(inputLen - outputLen);
+
+    if (inputLen <= outputLen && lengthDiff <= 6) {
+        return { score: "Good", marks: 7 };
+    } else if (outputLen > inputLen && lengthDiff > 6) {
+        return { score: "Excellent", marks: 9 };
+    } else if (inputLen > outputLen && lengthDiff > 6) {
+        return { score: "Poor", marks: 2 };
+    } else {
+        return { score: "Good", marks: 7 };
+    }
+};
+
+exports.qualityCheck = async (req, res, next) => {
+    try {
+        const { inputText, translatedText, expectedTargetLanguage } = req.body;
+
+        if (!inputText || !translatedText || !expectedTargetLanguage) {
+            return res.status(400).json({ error: "inputText, translatedText and expectedTargetLanguage are required" });
+        }
+
+        const detectedSourceLanguage = detectLanguageSimple(inputText);
+        const detectedTargetLanguage = detectLanguageSimple(translatedText);
+        const languageMatch = detectedTargetLanguage === expectedTargetLanguage;
+        const { score, marks } = mockQualityScore(inputText, translatedText);
+
+        const result = new TranslationCheckResult({
+            inputText,
+            translatedText,
+            detectedSourceLanguage,
+            detectedTargetLanguage,
+            languageMatch,
+            score,
+            marks,
+        });
+
+        await result.save();
+
+        res.json({ detectedTargetLanguage, languageMatch, score, marks });
+    } catch (error) {
+        console.error(error);
+        next(error);
+    }
 };

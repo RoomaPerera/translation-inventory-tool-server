@@ -5,6 +5,15 @@ const connectDB = require('./src/config/db');
 const {port } = require('./src/config/config');
 const app = require('./src/app');
 
+// Health check
+app.get('/', (req, res) => {
+  res.status(200).send('API is running.');
+});
+
+
+// Connect to MongoDB and start server
+const PORT = process.env.PORT || 5000;
+
 //connect to db
 connectDB().then(() => {
     const server = app.listen(port, () => {

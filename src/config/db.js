@@ -1,6 +1,7 @@
 // Responsible for establishing and exporting MongoDB connection
 const mongoose = require('mongoose');
 const { mongoURI } = require('./config');
+// const{mongoURI} =require('./index')
 
 // Exit code for fatal DB errors
 const DB_EXIT_CODE = 1;

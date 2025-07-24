@@ -2,6 +2,7 @@ const mongoose = require('mongoose');
 const bcrypt = require('bcrypt');
 const dns = require('dns').promises;
 const zxcvbn = require('zxcvbn');
+const validator = require('validator');
 const Schema = mongoose.Schema
 
 const userSchema = new Schema({
@@ -40,7 +41,10 @@ const userSchema = new Schema({
     resetTokenVersion: {
         type: Number,
         default: 0
-    }
+    },
+    resetPasswordToken: String,
+    resetPasswordOtp: String,
+    resetPasswordExpires: Date,
 }, { timestamps: true })
 
 function isValidEmail(email) {
@@ -187,12 +191,12 @@ userSchema.statics.register = async function (userName, email, password, role, l
     }
 
     //hash password and create user
-    const salt = await bcrypt.genSalt(10);
-    const hash = await bcrypt.hash(password, salt);
+    // const salt = await bcrypt.genSalt(10);
+    // const hash = await bcrypt.hash(password, salt);
 
     const newUser = {
         userName, email,
-        password: hash,
+        password: password,
         role,
         roleStatus: "Pending"
     };
@@ -234,6 +238,20 @@ userSchema.statics.login = async function (email, password) {
     }
     return user;
 };
+// Compare password method
+userSchema.methods.comparePassword = async function (password) {
+return await bcrypt.compare(password, this.password);
+};
 
-module.exports = mongoose.model('User', userSchema);
-module.exports.isStrongPassword = isStrongPassword;
+// // Password hashing before save
+userSchema.pre('save', async function (next) {
+if (!this.isModified('password')) return next();
+const salt = await bcrypt.genSalt(10);
+this.password = await bcrypt.hash(this.password, salt);
+next();
+});
+
+
+// If you have:
+const User = mongoose.model('User', userSchema);
+module.exports = { User, isStrongPassword };
