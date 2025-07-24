@@ -1,6 +1,6 @@
 const Translation = require('../models/Translation');
-const { notifyNewTranslation } = require('../utils/notificationService');
-const ActivityLog = require('../models/ActivityLog');
+//const { notifyNewTranslation } = require('../utils/notificationService');
+//const ActivityLog = require('../models/ActivityLog');
 const User = require('../models/User');
 
 

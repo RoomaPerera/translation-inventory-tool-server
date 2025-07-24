@@ -26,7 +26,7 @@ app.use((req, res, next) => {
     console.log(req.path, req.method);
     next();
 });
-app.use('/api/activitylogs', require('./routes/activityLogRoutes'));
+//app.use('/api/activitylogs', require('./routes/activityLogRoutes'));
 
 
 // === API Routes Mounting ===
@@ -42,7 +42,7 @@ app.use('/api/bulk', requireAuth, bulkRoutes);
 app.use('/api/nlp', requireAuth, nlpRoutes);
 
 // Start anomaly detection
-Scheduler.start();
+//Scheduler.start();
 
 // Error handling middleware
 app.use((err, req, res, next) => {

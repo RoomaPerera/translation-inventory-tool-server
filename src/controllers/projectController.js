@@ -29,18 +29,6 @@ const addProject = async (req, res) => {
         });
 
 
-    // Flatten languages array if needed
-    const flattenedLanguages = Array.isArray(languages) && languages.some(Array.isArray)
-      ? languages.flat()
-      : languages;
-
-    const newProject = new Project({
-      name,
-      description,
-      languages: flattenedLanguages,
-      createdBy,
-    });
-
     await newProject.save();
     // Send notification to relevant translators
     await notifyNewProject(newProject);
