@@ -79,7 +79,12 @@ const loginUser = async (req, res) => {
             secure: process.env.NODE_ENV === 'production',
             sameSite: 'Strict',
             maxAge: 2 * 60 * 60 * 1000 //2 hours in ms
-        }).status(200).json({ email });
+
+        }).status(200).json({
+            userData,
+        });
+
+
     } catch (error) {
         res.status(400).json({ error: error.message });
     }

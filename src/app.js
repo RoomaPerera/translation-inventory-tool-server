@@ -26,6 +26,8 @@ app.use((req, res, next) => {
     console.log(req.path, req.method);
     next();
 });
+app.use('/api/activitylogs', require('./routes/activityLogRoutes'));
+
 
 // === API Routes Mounting ===
 
@@ -39,7 +41,21 @@ app.use('/api/translations', requireAuth, translationRoutes); // This now correc
 app.use('/api/bulk', requireAuth, bulkRoutes);
 app.use('/api/nlp', requireAuth, nlpRoutes);
 
+// Start anomaly detection
+Scheduler.start();
+
+// Error handling middleware
+app.use((err, req, res, next) => {
+
+    console.error('Global error handler:', err);
+    res.status(err.status || 500).json({
+        message: err.message || 'Internal Server Error',
+        error: process.env.NODE_ENV === 'development' ? err : {}
+    });
+});
+
 // Global Error Handler Middleware
 app.use(errorHandler);
+
 
 module.exports = app;
