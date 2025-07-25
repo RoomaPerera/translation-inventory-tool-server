@@ -1,6 +1,7 @@
 // handles user authentication, registration, and password workflow
 const User = require('../models/User');
 const bcrypt = require('bcrypt');
+const BlockedIP = require('../models/BlockedIP');
 const {
     createToken,
     createShortToken,
@@ -12,6 +13,7 @@ const { getAllowedLanguageCodes } = require('../utils/languageHelper');
 const { isStrongPassword } = require('../models/User');
 const { frontendURL } = require('../config/config');
 const Language = require('../models/Language');
+const UserActivity = require('../models/UserActivity');
 
 // Constants for expiry and messages
 const PASSWORD_RESET_EXPIRY_MINUTES = 15;
@@ -26,6 +28,12 @@ const ALLOWED_SELF_ROLES = ['Translator', 'Developer', 'Admin'];
 const registerUser = async (req, res) => {
     console.log('[registerUser] req.body =', req.body);
     const { userName, email, password, role, languages } = req.body;
+    // --- IP BLOCK CHECK ---
+    const ip = req.ip || req.connection.remoteAddress;
+    const blocked = await BlockedIP.findOne({ ip });
+    if (blocked) {
+        return res.status(403).json({ error: 'Your IP is blocked.' });
+    }
     if (!ALLOWED_SELF_ROLES.includes(role)) {
         return res.status(400).json({ error: `You may only self‑register as: ${ALLOWED_SELF_ROLES.join(', ')}` });
     }
@@ -67,9 +75,33 @@ const registerUser = async (req, res) => {
  */
 const loginUser = async (req, res) => {
     const { email, password } = req.body;
+    // --- IP BLOCK CHECK ---
+    const ip = req.ip || req.connection.remoteAddress;
+    const blocked = await BlockedIP.findOne({ ip });
+    if (blocked) {
+        return res.status(403).json({ error: 'Your IP is blocked.' });
+    }
     try {
         const user = await User.login(email, password);
         const token = createToken({ id: user._id, role: user.role });
+        // Prepare user object for frontend
+        const userObj = {
+            id: user._id,
+            name: user.name,
+            email: user.email,
+            role: user.role,
+            lastLogin: user.lastLogin,
+            isActive: user.isActive,
+            languages: user.languages || [],
+        };
+        // Log successful login
+        await UserActivity.create({
+            user: user._id,
+            type: 'login',
+            success: true,
+            ip,
+            details: { email }
+        });
         // send token as HTTP only secure cookie
         res.cookie('token', token, {
             httpOnly: true,
@@ -89,6 +121,14 @@ const loginUser = async (req, res) => {
             message: 'Login successful'
         });
     } catch (error) {
+        // Log failed login
+        await UserActivity.create({
+            user: null,
+            type: 'failed_login',
+            success: false,
+            ip,
+            details: { email }
+        });
         res.status(400).json({ error: error.message });
     }
 };
@@ -231,4 +271,4 @@ module.exports = {
     changePassword,
     logoutUser,
     getLanguages
-};
+}; 

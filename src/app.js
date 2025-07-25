@@ -1,28 +1,27 @@
+require('dotenv').config();
 const express = require('express');
+const mongoose = require('mongoose');
 const cors = require('cors');
+const Scheduler = require('./utils/scheduler');
 
-const authRoutes = require('./routes/authRoutes');
-const userRoutes = require('./routes/userRoutes');
-const projectRoutes = require('./routes/projectRoutes');
-const languageRoutes = require('./routes/languageRoutes');
-const adminRoutes    = require('./routes/adminRoutes'); 
-const developerRoutes = require('./routes/developerRoutes'); 
-const translationRoutes = require('./routes/translationRoutes');
-const revisionRoutes = require('./routes/revisionRoutes');
-const cookieParser = require('cookie-parser');
-const requireAuth = require('./middleware/requireAuth');
+// Import models to register schemas
+require('./models/User');
+require('./models/UserActivity');
+require('./models/Anomaly');
 
-//express app
 const app = express();
 
-const logger = require('./middleware/logger');
+// Connect to MongoDB
+mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/notification');
 
-//middleware
+// Enable CORS BEFORE routes
 app.use(cors({
-    origin: 'http://localhost:5173',
-    credentials: true,
+  origin: 'http://localhost:5173',
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
+  credentials: true
 }));
 
+// Parse JSON
 app.use(express.json());
 app.use(cookieParser());
 app.use(logger); //  log all requests
@@ -59,6 +58,11 @@ app.use((err, req, res, next) => {
     message: err.message || 'Internal Server Error',
     error: process.env.NODE_ENV === 'development' ? err : {}
   });
-});
+});app.use('/api/activitylogs', require('./routes/activityLogRoutes'));
 
-module.exports = app;
+app.use('/api/anomalies', require('./routes/anomalies'));
+
+// Start anomaly detection
+Scheduler.start();
+
+module.exports = app; 
