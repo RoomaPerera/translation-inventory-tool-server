@@ -71,11 +71,24 @@ exports.editTranslationText = async (req, res, next) => {
             return res.status(404).json({ error: 'Translation not found for that key/language' });
         }
         await translation.addRevision(translatedText, req.user.id);
+        // Activity Log: User edits translation
+        try {
+            const user = await User.findById(req.user.id).select('userName');
+            if (user) {
+                await ActivityLog.create({
+                    userId: req.user.id,
+                    userName: user.userName,
+                    role: req.user.role.toLowerCase(),
+                    description: `Edited translation for key: ${translation.translationKey} in language: ${translation.language}`
+                });
+            }
+        } catch (logErr) {
+            console.error('ActivityLog error (editTranslationText):', logErr);
+        }
         res.json(translation);
     } catch (error) {
         next(error);
     }
-
 };
 
 

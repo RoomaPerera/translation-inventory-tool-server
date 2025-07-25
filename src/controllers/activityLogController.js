@@ -20,24 +20,30 @@ const addActivityLog = async (req, res) => {
 
 // 2. Get activity logs 
 const getActivityLogs = async (req, res) => {
+  console.log('getActivityLogs called, req.user:', req.user, 'req.query:', req.query);
   try {
     const { role, id } = req.user;
-    const { filterRole, userId } = req.query; // Admin can filter by role or user
     let logs;
-    if (role === 'Admin') {
+    if (role.toLowerCase() === 'admin') {
       // Admin: filter by role or user if provided
       const query = {};
-      if (filterRole) query.role = filterRole.toLowerCase();
-      if (userId) query.userId = userId;
-      logs = await ActivityLog.find(query);
-    } else if (role === 'Translator') {
-      // Translator: only see their own logs
-      logs = await ActivityLog.find({ userId: id, role: 'translator' });
+      if (req.query.filterRole) query.role = req.query.filterRole.toLowerCase();
+      if (req.query.userId) query.userId = req.query.userId;
+      console.log('Admin query:', query);
+      logs = await ActivityLog.find(query).sort({ timeStamp: -1 });
+      console.log('Admin logs found:', logs);
+    } else if (role.toLowerCase() === 'translator') {
+      // Translator: always see only their own logs
+      const query = { userId: id, role: { $in: ['translator', 'Translator'] } };
+      console.log('Translator query:', query);
+      logs = await ActivityLog.find(query).sort({ timeStamp: -1 });
+      console.log('Translator logs found:', logs);
     } else {
       return res.status(403).json({ message: 'Unauthorized role' });
     }
     res.status(200).json(logs);
   } catch (error) {
+    console.error('Error in getActivityLogs:', error);
     res.status(500).json({ message: error.message });
   }
 };

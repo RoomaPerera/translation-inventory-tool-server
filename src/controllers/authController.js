@@ -79,10 +79,11 @@ const loginUser = async (req, res) => {
         })
         // --- FIX: include token and user info in response ---
         .status(200).json({
+            id: user._id, // <--- add this line
             email: user.email,
             userName: user.userName,
             role: user.role,
-            token // <--- include the token here!
+            token
         });
     } catch (error) {
         res.status(400).json({ error: error.message });

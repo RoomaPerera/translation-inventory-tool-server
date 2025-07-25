@@ -6,8 +6,7 @@ const {
     getTranslations,
     approveTranslation  
 } = require('../controllers/translationController');
-
-const checkAdmin = require('../middleware/checkRole'); 
+const requireRole = require('../middleware/requireRole');
 
 const router = express.Router();
 
@@ -55,12 +54,12 @@ router.get('/', async (req, res) => {
   }
 });
 
-// ✅ These lines are fine as they allow controller-based handling
+// Use controller-based handling for these routes
 router.post('/', addTranslation);
 router.put('/:id', updateTranslation);
 router.get('/', getTranslations);
 
-// ✅ Approve translation (admin-only)
-router.put('/approve/:id', checkAdmin, approveTranslation);  // ✅ PROTECTED
+// Approve translation (admin-only)
+router.put('/approve/:id', requireRole('Admin'), approveTranslation);  // PROTECTED
 
 module.exports = router;

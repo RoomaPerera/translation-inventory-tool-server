@@ -33,5 +33,14 @@ router.get('/getLanguages', getLanguages);
 //protected routes
 router.post('/changePassword', requireAuth, changePassword);
 router.get('/logout', requireAuth, logoutUser);
+// Add this route to return the current user's info
+router.get('/me', requireAuth, async (req, res) => {
+    // req.user is set by requireAuth middleware
+    res.json({
+      id: req.user.id,
+      role: req.user.role
+      // You can add more user info here if needed
+    });
+  });
 
 module.exports = router;
