@@ -65,7 +65,8 @@ const registerUser = async (req, res) => {
         await User.register(userName.trim(), email.trim(), password, role, cleanLanguages);
         res.status(200).json({ message: 'Send to Approval' });
     } catch (error) {
-        res.status(400).json({ error: error.message });
+        console.error('[registerUser] Error:', error.message, error.stack);
+        res.status(400).json({ error: error.message || 'Registration failed' });
     }
 };
 
@@ -87,11 +88,10 @@ const loginUser = async (req, res) => {
         // Prepare user object for frontend
         const userObj = {
             id: user._id,
-            name: user.name,
+            userName: user.userName,
             email: user.email,
             role: user.role,
-            lastLogin: user.lastLogin,
-            isActive: user.isActive,
+            roleStatus: user.roleStatus,
             languages: user.languages || [],
         };
         // Log successful login
@@ -105,8 +105,8 @@ const loginUser = async (req, res) => {
         // send token as HTTP only secure cookie
         res.cookie('token', token, {
             httpOnly: true,
-            secure: process.env.NODE_ENV === 'production',
-            sameSite: 'Strict',
+            secure: false, // changed from process.env.NODE_ENV === 'production' to false for local development
+            sameSite: 'Lax', // changed from 'Strict' to 'Lax' for local development
             maxAge: 2 * 60 * 60 * 1000 //2 hours in ms
         })
         // --- FIX: include token and user info in response ---
@@ -114,8 +114,10 @@ const loginUser = async (req, res) => {
             user: {
                 id: user._id,
                 userName: user.userName,
+                email: user.email,
                 role: user.role,
-                // email: user.email, // Uncomment if you want to include email
+                roleStatus: user.roleStatus,
+                languages: user.languages || [],
             },
             token,
             message: 'Login successful'
@@ -246,8 +248,8 @@ const logoutUser = async (req, res) => {
     res.
         clearCookie('token', {
             httpOnly: true,
-            secure: process.env.NODE_ENV == 'production',
-            sameSite: 'Strict',
+            secure: false, // for local development
+            sameSite: 'Lax', // for local development
             path: '/'
         }).json({ message: 'Logged out successfully' });
 }
@@ -263,6 +265,39 @@ const getLanguages = async (req, res) => {
     }
 }
 
+/**
+ * @route   GET /api/auth/me
+ * @desc    Get current user info (verify authentication)
+ */
+const getCurrentUser = async (req, res) => {
+    try {
+        // req.user is set by requireAuth middleware
+        if (!req.user) {
+            return res.status(401).json({ error: 'Not authenticated' });
+        }
+
+        const user = await User.findById(req.user.id).select('-password');
+        if (!user) {
+            return res.status(404).json({ error: 'User not found' });
+        }
+
+        res.status(200).json({
+            user: {
+                id: user._id,
+                email: user.email,
+                userName: user.userName,
+                role: user.role,
+                roleStatus: user.roleStatus,
+                // Include any other user fields you need on the frontend
+                languages: user.languages // if applicable
+            }
+        });
+    } catch (error) {
+        console.error('getCurrentUser error:', error);
+        res.status(500).json({ error: 'Server error' });
+    }
+};
+
 module.exports = {
     registerUser,
     loginUser,
@@ -270,5 +305,6 @@ module.exports = {
     setNewPassword,
     changePassword,
     logoutUser,
-    getLanguages
+    getLanguages,
+    getCurrentUser
 }; 

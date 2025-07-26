@@ -7,10 +7,12 @@ const {
     changePassword,
     setNewPassword,
     logoutUser,
-    getLanguages
+    getLanguages,
+    getCurrentUser
 } = require('../controllers/authController');
 const requireAuth = require('../middleware/requireAuth');
 const rateLimit = require('express-rate-limit');
+const logActivity = require('../middleware/activityLogger');
 
 const loginLimiter = rateLimit({
     windowMs: 60 * 1000,
@@ -24,23 +26,15 @@ const resetLimiter = rateLimit({
 })
 
 //public routes
-router.post('/register', registerUser);
-router.post('/login', loginLimiter, loginUser);
-router.post('/resetPassword', resetLimiter, resetPassword);
-router.post('/setNewPassword', setNewPassword);
+router.post('/register', logActivity('register'), registerUser);
+router.post('/login', loginLimiter, logActivity('login'), loginUser);
+router.post('/resetPassword', resetLimiter, logActivity('reset_password'), resetPassword);
+router.post('/setNewPassword', logActivity('set_new_password'), setNewPassword);
 router.get('/getLanguages', getLanguages);
 
 //protected routes
-router.post('/changePassword', requireAuth, changePassword);
-router.get('/logout', requireAuth, logoutUser);
-// Add this route to return the current user's info
-router.get('/me', requireAuth, async (req, res) => {
-    // req.user is set by requireAuth middleware
-    res.json({
-      id: req.user.id,
-      role: req.user.role
-      // You can add more user info here if needed
-    });
-  });
+router.post('/changePassword', requireAuth, logActivity('change_password'), changePassword);
+router.get('/logout', requireAuth, logActivity('logout'), logoutUser);
+router.get('/me', requireAuth, getCurrentUser);
 
 module.exports = router;

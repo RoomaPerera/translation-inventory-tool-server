@@ -3,6 +3,18 @@ const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
 const Scheduler = require('./utils/scheduler');
+const cookieParser = require('cookie-parser');
+const logger = require('./middleware/logger');
+const authRoutes = require('./routes/authRoutes');
+const userRoutes = require('./routes/userRoutes');
+const projectRoutes = require('./routes/projectRoutes');
+const languageRoutes = require('./routes/languageRoutes');
+const adminRoutes = require('./routes/adminRoutes');
+const developerRoutes = require('./routes/developerRoutes');
+const translationRoutes = require('./routes/translationRoutes');
+const revisionRoutes = require('./routes/revisionRoutes');
+const requireAuth = require('./middleware/requireAuth');
+
 
 // Import models to register schemas
 require('./models/User');
@@ -11,8 +23,6 @@ require('./models/Anomaly');
 
 const app = express();
 
-// Connect to MongoDB
-mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/notification');
 
 // Enable CORS BEFORE routes
 app.use(cors({
@@ -29,7 +39,7 @@ app.use((req, res, next) => {
   console.log(`${new Date().toISOString()} - ${req.method} ${req.path}`);
   next();
 });
-app.use('/api/activitylogs', require('./routes/activityLogRoutes'));
+
 
 
 // Simple test endpoint to verify API is working
@@ -49,6 +59,9 @@ app.use('/api/admin', requireAuth,adminRoutes);
 app.use('/api/developer', requireAuth,developerRoutes);   
 app.use('/api/translations', requireAuth,translationRoutes); 
 app.use('/api/translations', requireAuth, revisionRoutes);
+app.use('/api/activitylogs', require('./routes/activityLogRoutes'));
+app.use('/api/anomalies', require('./routes/anomalies'));
+
 
 
 // Error handling middleware
@@ -58,9 +71,9 @@ app.use((err, req, res, next) => {
     message: err.message || 'Internal Server Error',
     error: process.env.NODE_ENV === 'development' ? err : {}
   });
-});app.use('/api/activitylogs', require('./routes/activityLogRoutes'));
+});
 
-app.use('/api/anomalies', require('./routes/anomalies'));
+
 
 // Start anomaly detection
 Scheduler.start();

@@ -15,7 +15,12 @@ const requireAuth = async (req, res, next) => {
         token = req.cookies.token;
     }
 
+    console.log('Cookies:', req.cookies);
+    console.log('Authorization header:', req.headers.authorization);
+    console.log('Token found:', !!token);
+
     if (!token) {
+        console.log('No token found, sending 401');
         return res.status(401).json({ mssg: 'Authorization token required' });
     }
     console.log('Raw token:', token);
@@ -49,8 +54,8 @@ const requireAuth = async (req, res, next) => {
         const newToken = createToken({ id: user._id, role: user.role });
         res.cookie('token', newToken, {
             httpOnly: true,
-            secure: process.env.NODE_ENV === 'production',
-            sameSite: 'Strict',
+            secure: false, // for local development
+            sameSite: 'Lax', // for local development
             maxAge: SESSION_EXPIRY_MS
         })
         next();

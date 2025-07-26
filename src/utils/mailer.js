@@ -13,15 +13,19 @@ const transporter = nodemailer.createTransport({
 
 async function sendMail({ to, subject, html }) {
     try {
-        await transporter.sendMail({
+        console.log(`Attempting to send email to: ${to}`);
+        const result = await transporter.sendMail({
             from: `"Translation Inventory Tool" <no-reply@translation-inventory-tool.com>`,
             to,
             subject,
             html,
         });
+        console.log(`Email sent successfully to: ${to}`);
+        return result;
     } catch (err) {
         console.error('Failed to send email: ', err);
-        throw new Error('Email sending failed');
+        // Don't throw error - let the calling function handle it
+        throw new Error(`Email sending failed: ${err.message}`);
     }
 };
 module.exports = { sendMail };

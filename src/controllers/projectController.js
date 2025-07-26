@@ -50,7 +50,7 @@ const addProject = async (req, res) => {
 
     res.status(201).json({ message: 'Project added successfully.', project: newProject });
   } catch (error) {
-    console.error('🔥 Error creating project:', error);
+    console.error('Error creating project:', error);
     res.status(500).json({
       message: 'Error creating project',
       error: error.message || error,
