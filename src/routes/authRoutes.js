@@ -39,11 +39,7 @@ router.post('/resetPassword',resetPassword); // Uncomment if you have this route
 // Uncomment if you have this route
 // router.post('/resetPassword', resetLimiter, resetPassword);
 // router.post('/setNewPassword', setNewPassword);
-// router.get('/getLanguages', getLanguages);
+router.get('/getLanguages', getLanguages);
 
-
-//protected routes
-// router.post('/changePassword', requireAuth, changePassword);
-router.get('/logout', requireAuth, logoutUser);
 
 module.exports = router;

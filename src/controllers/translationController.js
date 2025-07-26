@@ -3,9 +3,10 @@
 const Translation = require('../models/Translation');
 const { notifyNewTranslation } = require('../utils/notificationService');
 const User = require('../models/User');
-const { detectLanguageSimple } = require('../config/languageDetector');
 const TranslationCheckResult = require('../models/TranslationCheckResult');
-
+const mockQualityScore = require('../utils/mockQualityScore'); // ✅ added
+ const  detectLanguageSimple = require('../utils/detectLanguagecolls'); // ✅ added
+// ----------------- CRUD CONTROLLERS ---------------------
 
 exports.addTranslation = async (req, res, next) => {
     try {
@@ -141,22 +142,58 @@ exports.deleteTranslation = async (req, res, next) => {
     }
 };
 
-const mockQualityScore = (input, output) => {
-    if (!output) return { score: "Poor", marks: 2 };
-    const inputLen = input.length;
-    const outputLen = output.length;
-    const lengthDiff = Math.abs(inputLen - outputLen);
+// ---------------- QUALITY CHECK CONTROLLER ----------------
 
-    if (inputLen <= outputLen && lengthDiff <= 6) {
-        return { score: "Good", marks: 7 };
-    } else if (outputLen > inputLen && lengthDiff > 6) {
-        return { score: "Excellent", marks: 9 };
-    } else if (inputLen > outputLen && lengthDiff > 6) {
-        return { score: "Poor", marks: 2 };
-    } else {
-        return { score: "Good", marks: 7 };
-    }
-};
+// exports.qualityCheck = async (req, res, next) => {
+//     try {
+//         const { inputText, translatedText, expectedTargetLanguage } = req.body;
+
+//         if (!inputText || !translatedText || !expectedTargetLanguage) {
+//             return res.status(400).json({ error: "inputText, translatedText and expectedTargetLanguage are required" });
+//         }
+
+//         const detectedSourceLanguage = detectLanguageSimple(inputText);
+//         const detectedTargetLanguage = detectLanguageSimple(translatedText);
+
+//         const { score, marks, checkPassed } = mockQualityScore(
+//             inputText,
+//             translatedText,
+//             expectedTargetLanguage,
+//             detectedTargetLanguage
+//         );
+
+//         // If marks > 5, override languageMatch to true
+//         let languageMatch = detectedTargetLanguage.toLowerCase() === expectedTargetLanguage.toLowerCase();
+//         if (marks > 5) {
+//             languageMatch = true;
+//         }
+
+//         const result = new TranslationCheckResult({
+//             inputText,
+//             translatedText,
+//             detectedSourceLanguage,
+//             detectedTargetLanguage,
+//             languageMatch,
+//             score,
+//             marks,
+//             checkPassed
+//         });
+
+//         await result.save();
+
+//         res.json({
+//             detectedTargetLanguage,
+//             languageMatch,
+//             score,
+//             marks,
+//             checkPassed
+//         });
+//     } catch (error) {
+//         console.error(error);
+//         next(error);
+//     }
+// };
+
 
 exports.qualityCheck = async (req, res, next) => {
     try {
@@ -168,8 +205,18 @@ exports.qualityCheck = async (req, res, next) => {
 
         const detectedSourceLanguage = detectLanguageSimple(inputText);
         const detectedTargetLanguage = detectLanguageSimple(translatedText);
-        const languageMatch = detectedTargetLanguage === expectedTargetLanguage;
-        const { score, marks } = mockQualityScore(inputText, translatedText);
+
+        const { score, marks, checkPassed } = mockQualityScore(
+            inputText,
+            translatedText,
+            expectedTargetLanguage,
+            detectedTargetLanguage
+        );
+
+        let languageMatch = detectedTargetLanguage === expectedTargetLanguage;
+        if (marks > 5) {
+            languageMatch = true;
+        }
 
         const result = new TranslationCheckResult({
             inputText,
@@ -179,11 +226,18 @@ exports.qualityCheck = async (req, res, next) => {
             languageMatch,
             score,
             marks,
+            checkPassed
         });
 
         await result.save();
 
-        res.json({ detectedTargetLanguage, languageMatch, score, marks });
+        res.json({
+            detectedTargetLanguage,
+            languageMatch,
+            score,
+            marks,
+            checkPassed
+        });
     } catch (error) {
         console.error(error);
         next(error);

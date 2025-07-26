@@ -2,6 +2,7 @@
 
 const express = require('express');
 const router = express.Router();
+const translationController = require('../controllers/translationController');
 
 
 const Translation = require('../models/Translation');
@@ -74,7 +75,7 @@ router.get('/', getTranslations);
 router.post('/', addTranslation);
 router.put('/:id', updateTranslation);
 router.get('/', getTranslations);
-router.post('/quality-check', qualityCheck);
+router.post('/quality-check',translationController.qualityCheck);
 
 // ✅ Approve translation (admin-only)
 router.put('/approve/:id', checkAdmin, approveTranslation);  // ✅ PROTECTED

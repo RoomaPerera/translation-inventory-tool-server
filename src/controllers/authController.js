@@ -69,34 +69,63 @@ const registerUser = async (req, res) => {
  * @route   POST /api/auth/login
  * @desc    Authenticate user and return JWT
  */
+// const loginUser = async (req, res) => {
+//   console.log('Login request body:', req.body);  // log input
+//   const { email, password } = req.body;
+
+//   if (!email || !password) {
+//     return res.status(400).json({ error: 'Email and password are required' });
+//   }
+
+//   try {
+//     const user = await User.login(email, password);
+//     const token = createToken(user._id,process.env.SECRET, '1h');
+
+//     res.cookie('token', token, {
+//       httpOnly: true,
+//       secure: process.env.NODE_ENV === 'production',
+//       sameSite: 'Strict',
+//       maxAge: 2 * 60 * 60 * 1000,
+//     }).status(200).json({
+//       email: user.email,
+//       userName: user.userName,
+//       role: user.role,
+//       token
+//     });
+//   } catch (error) {
+//     console.error('Login error:', error);
+//     res.status(400).json({ error: error.message });
+//   }
+// };
 const loginUser = async (req, res) => {
-  console.log('Login request body:', req.body);  // log input
   const { email, password } = req.body;
-
-  if (!email || !password) {
-    return res.status(400).json({ error: 'Email and password are required' });
-  }
-
   try {
-    const user = await User.login(email, password);
-    const token = createToken(user._id,process.env.SECRET, '1h');
+    if (!email || !password) throw new Error('Email and password are required');
 
-    res.cookie('token', token, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'Strict',
-      maxAge: 2 * 60 * 60 * 1000,
-    }).status(200).json({
-      email: user.email,
-      userName: user.userName,
-      role: user.role,
-      token
+    const user = await User.login(email, password);
+    const token = createToken(user._id, process.env.SECRET, '1h');
+
+    res.status(200).json({
+      token,
+      user: {
+        userName: user.userName || user.name,
+        email: user.email,
+        role: user.role,
+      },
     });
   } catch (error) {
-    console.error('Login error:', error);
     res.status(400).json({ error: error.message });
   }
 };
+
+// controllers/authController.js
+
+
+// Login User Controller
+
+
+module.exports = { loginUser };
+
 
 
 /**
@@ -365,6 +394,7 @@ const getLanguages = async (req, res) => {
         return res.status(500).json({ error: 'Could not load languages' })
     }
 }
+
 
 
 

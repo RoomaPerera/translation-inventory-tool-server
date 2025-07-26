@@ -254,4 +254,5 @@ next();
 
 // If you have:
 const User = mongoose.model('User', userSchema);
+
 module.exports = { User, isStrongPassword };

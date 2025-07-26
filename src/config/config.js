@@ -49,8 +49,8 @@ module.exports = {
     },
     frontendURL,
     // Additional simple exports
-    simpleConfig: {
-        port: process.env.PORT || 5000,
-        mongoURI: process.env.MONGO_URI,
-    }
+    
+    port: process.env.PORT || 5000,
+    mongoURI: process.env.MONGO_URI,
+    
 };
