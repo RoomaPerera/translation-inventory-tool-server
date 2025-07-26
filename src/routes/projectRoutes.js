@@ -13,6 +13,10 @@ const {
   removeProjectDefaultLanguage
 } = require('../controllers/projectController');
 
+const requireAuth = require('../middleware/requireAuth');
+// Middleware
+router.use(requireAuth);
+
 // POST: Add new project
 router.post('/', addProject);
 

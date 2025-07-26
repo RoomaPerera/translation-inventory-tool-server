@@ -8,9 +8,9 @@ const {
     deleteLanguage
 } = require('../controllers/languageController');
 
-//const requireAuth = require('../middleware/requireAuth');
+const requireAuth = require('../middleware/requireAuth');
 // Middleware
-//router.use(requireAuth);
+router.use(requireAuth);
 
 // Get all languages
 router.get('/', getAllLanguages);
