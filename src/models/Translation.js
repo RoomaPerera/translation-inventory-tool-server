@@ -1,5 +1,4 @@
-
-//const { text } = require("express");
+//TranslationModel
 const { default: mongoose } = require("mongoose");
 
 const revisionSchema = new mongoose.Schema({
@@ -28,7 +27,11 @@ const translationSchema = new mongoose.Schema({
     revisions: {
         type: [revisionSchema],
         default: []
-    } // added newly
+    },
+    version: {
+        type: Number,
+        default: 1
+    }
 });
 
 translationSchema.methods.addRevision = async function (newText, userId, maxRevisions = 6) {
@@ -37,7 +40,18 @@ translationSchema.methods.addRevision = async function (newText, userId, maxRevi
         this.revisions = this.revisions.slice(0, maxRevisions);
     }
     this.translatedText = newText;
+    this.updatedAt = Date.now();
+    this.version = (this.version || 1) + 1;
+    this.createdBy = userId;
     return this.save();
+}
+// method to check for version conflicts
+translationSchema.methods.checkVersionConflict = function (clientVersion) {
+    return this.version !== clientVersion;
+}
+// method to get the current version
+translationSchema.methods.getCurrentVersion = function () {
+    return this.version;
 }
 
 

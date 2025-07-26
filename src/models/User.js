@@ -38,6 +38,9 @@ const userSchema = new Schema({
         type: Date,
         default: null
     },
+    isActive: { type: Boolean, default: true },
+    lastLogin: Date,
+    createdAt: { type: Date, default: Date.now },
     resetTokenVersion: {
         type: Number,
         default: 0
@@ -94,7 +97,7 @@ function isStrongPassword(pw, emailLocalPart = "") {
     }
     if (pw.length < 12) {
         feedback.valid = false;
-        feedback.message = feedback.message || 'Password must be at least 12 characters long.';
+        feedback.message = feedback.message || 'Password is should be more than 8 characters.';
         return feedback;
     }
     if (/\s/.test(pw)) {

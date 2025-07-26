@@ -15,7 +15,7 @@ const rateLimit = require('express-rate-limit');
 const logActivity = require('../middleware/activityLogger');
 
 const loginLimiter = rateLimit({
-    windowMs: 60 * 1000,
+    windowMs: 15 * 60 * 1000, // 15 minutes
     max: 5,
     message: { error: 'Too many login attempts, please try again later.' }
 })
@@ -32,6 +32,7 @@ router.post('/resetPassword', resetLimiter, logActivity('reset_password'), reset
 router.post('/setNewPassword', logActivity('set_new_password'), setNewPassword);
 router.get('/getLanguages', getLanguages);
 
+router.use(requireAuth);
 //protected routes
 router.post('/changePassword', requireAuth, logActivity('change_password'), changePassword);
 router.get('/logout', requireAuth, logActivity('logout'), logoutUser);

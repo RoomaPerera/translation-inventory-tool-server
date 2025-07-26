@@ -59,11 +59,11 @@ async function notifyNewLanguage(language) {
 
 // 3. Notify a translator for a new language assignment
 async function notifyLanguageAssignment(translator, language) {
-  await sendMail({
-    to: translator.email,
-    subject: 'Language Assignment Updated',
-    html: `<p>You have been assigned a new language: ${language}</p>`
-  });
+    await sendMail({
+        to: translator.email,
+        subject: 'Language Assignment Updated',
+        html: `<p>You have been assigned a new language: ${language}</p>`
+    });
 }
 
 // 4. Notify translators for a new translation
@@ -94,8 +94,8 @@ async function notifyNewTranslation(translation) {
 }
 
 module.exports = {
-  notifyNewProject,
-  notifyNewLanguage,
-  notifyLanguageAssignment,
-  notifyNewTranslation,
+    notifyNewProject,
+    notifyNewLanguage,
+    notifyLanguageAssignment,
+    notifyNewTranslation,
 }; 

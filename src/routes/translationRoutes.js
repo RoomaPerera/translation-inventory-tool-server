@@ -1,65 +1,40 @@
 const express = require('express');
-const Translation = require('../models/Translation');
+const router = express.Router();
+const revisionRoutes = require('./revisionRoutes'); // Import the sub-router
+
+// Import all necessary translation controller functions
 const {
     addTranslation,
     updateTranslation,
     getTranslations,
-    approveTranslation  
+    deleteTranslation,
 } = require('../controllers/translationController');
 const requireRole = require('../middleware/requireRole');
 
-const router = express.Router();
+// === Main Translation CRUD Routes ===
 
-// Add a translation
-router.post('/', async (req, res) => {
-  try {
-    const { translationKey, language, translatedText, product, createdBy, projectId } = req.body;
-    const newTranslation = new Translation({ translationKey, language, translatedText, product, createdBy, projectId });
-    await newTranslation.save();
-    res.status(201).json(newTranslation);
-  } catch (error) {
-    res.status(400).json({ message: error.message });
-  }
-});
-
-// Update a translation
-router.put('/:id', async (req, res) => {
-  try {
-    const { translatedText, status } = req.body;
-    const updatedTranslation = await Translation.findByIdAndUpdate(
-      req.params.id,
-      { translatedText, status, updatedAt: Date.now() },
-      { new: true }
-    );
-    res.json(updatedTranslation);
-  } catch (error) {
-    res.status(400).json({ message: error.message });
-  }
-});
-
-// Get translations with filtering
-router.get('/', async (req, res) => {
-  try {
-    const { product, language, word, key } = req.query;
-    const filter = {};
-    if (product) filter.product = product;
-    if (language) filter.language = language;
-    if (word) filter.translatedText = { $regex: word, $options: 'i' };
-    if (key) filter.translationKey = key;
-    
-    const translations = await Translation.find(filter);
-    res.json(translations);
-  } catch (error) {
-    res.status(400).json({ message: error.message });
-  }
-});
-
-// Use controller-based handling for these routes
-router.post('/', addTranslation);
-router.put('/:id', updateTranslation);
+// GET all translations with optional filtering
+// Handles GET /api/translations
 router.get('/', getTranslations);
 
-// Approve translation (admin-only)
-router.put('/approve/:id', requireRole('Admin'), approveTranslation);  // PROTECTED
+// POST a new translation
+// Handles POST /api/translations
+router.post('/', addTranslation);
+
+// PUT an update to a translation's text or status. This also handles revisions.
+// Handles PUT /api/translations/:id
+router.put('/:id', updateTranslation);
+
+// DELETE a translation by ID
+// Handles DELETE /api/translations/:id
+router.delete('/:id', deleteTranslation);
+
+
+// === Sub-Router for Revisions ===
+// Any request starting with /api/translations/revisions will be passed to revisionRoutes.js
+router.use('/revisions', revisionRoutes);
+
+
+
 
 module.exports = router;

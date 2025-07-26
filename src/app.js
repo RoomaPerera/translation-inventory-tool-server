@@ -1,7 +1,10 @@
 require('dotenv').config();
 const express = require('express');
-const mongoose = require('mongoose');
 const cors = require('cors');
+const cookieParser = require('cookie-parser');
+const errorHandler = require('./middleware/errorMiddleware');
+const requireAuth = require('./middleware/requireAuth');
+const logger = require('./middleware/logger');
 const Scheduler = require('./utils/scheduler');
 const cookieParser = require('cookie-parser');
 const logger = require('./middleware/logger');
@@ -21,61 +24,49 @@ require('./models/User');
 require('./models/UserActivity');
 require('./models/Anomaly');
 
+// --- Import All Route Handlers ---
+const authRoutes = require('./routes/authRoutes');
+const userRoutes = require('./routes/userRoutes');
+const projectRoutes = require('./routes/projectRoutes');
+const adminRoutes = require('./routes/adminRoutes');
+const developerRoutes = require('./routes/developerRoutes');
+const translationRoutes = require('./routes/translationRoutes');
+const fuzzyRoutes = require('./routes/fuzzyRoutes');
+const activityLogRoutes = require('./routes/activityLogRoutes');
+const anomalyRoutes = require('./routes/anomalies');
+const languageRoutes = require('./routes/languageRoutes');
+const nlpRoutes = require('./routes/nlpRoutes');
+
+// Express app initialization
 const app = express();
 
-
-// Enable CORS BEFORE routes
+// --- Middleware Setup ---
 app.use(cors({
-  origin: 'http://localhost:5173',
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
-  credentials: true
+    origin: process.env.FRONTEND_URL || 'http://localhost:5173',
+    credentials: true,
 }));
 
-// Parse JSON
 app.use(express.json());
 app.use(cookieParser());
-app.use(logger); //  log all requests
-app.use((req, res, next) => {
-  console.log(`${new Date().toISOString()} - ${req.method} ${req.path}`);
-  next();
-});
+app.use(logger); // Log all requests
 
-
-
-// Simple test endpoint to verify API is working
-app.get('/api/test', (req, res) => {
-  res.json({ 
-    message: 'API is working', 
-    timestamp: new Date().toISOString(),
-    environment: process.env.NODE_ENV || 'development'
-  });
-});
-// Routes
+// --- API Routes ---
 app.use('/api/auth', authRoutes);
-app.use('/api/users', requireAuth,userRoutes);
-app.use('/api/projects', requireAuth,projectRoutes);
-app.use('/api/languages', requireAuth,languageRoutes);
-app.use('/api/admin', requireAuth,adminRoutes);  
-app.use('/api/developer', requireAuth,developerRoutes);   
-app.use('/api/translations', requireAuth,translationRoutes); 
-app.use('/api/translations', requireAuth, revisionRoutes);
-app.use('/api/activitylogs', require('./routes/activityLogRoutes'));
-app.use('/api/anomalies', require('./routes/anomalies'));
+app.use('/api/users', requireAuth, userRoutes);
+app.use('/api/translations', requireAuth, translationRoutes);
+app.use('/api/nlp', requireAuth, nlpRoutes);
+app.use('/api/projects', requireAuth, projectRoutes);
+app.use('/api/languages', requireAuth, languageRoutes);
+app.use('/api/admin', requireAuth, adminRoutes);
+app.use('/api/developer', requireAuth, developerRoutes);
+app.use('/api/activitylogs', requireAuth, activityLogRoutes);
+app.use('/api/anomalies', requireAuth, anomalyRoutes);
+app.use('/api', fuzzyRoutes); // public in this setup?
 
-
-
-// Error handling middleware
-app.use((err, req, res, next) => {
-  console.error('Global error handler:', err);
-  res.status(err.status || 500).json({
-    message: err.message || 'Internal Server Error',
-    error: process.env.NODE_ENV === 'development' ? err : {}
-  });
-});
-
-
-
-// Start anomaly detection
+// Start anomaly detection scheduler
 Scheduler.start();
 
-module.exports = app; 
+// Global Error Handler Middleware (consolidated)
+app.use(errorHandler);
+
+module.exports = app;

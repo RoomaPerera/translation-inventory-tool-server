@@ -1,23 +1,23 @@
+//revisionRoutes
+
 const router = require('express').Router();
-const requireAuth /*requireRole*/ = require('../middleware/requireAuth');
+
 const {
     getRevisions,
     getDiff,
     revertRevision
 } = require('../controllers/revisionController');
 
-router.use(requireAuth);
-//const translatorRouter = express.Router();
+// NOTE: These paths are now relative to where this router is mounted.
+// The parent router will mount this on '/revisions'.
 
-// View history
-router.get('/revisions/:id', getRevisions);
+// Handles GET /api/translations/revisions/:id
+router.get('/:id', getRevisions);
 
-// Compute diff
+// Handles GET /api/translations/revisions/diff/:id/:revIndex
 router.get('/diff/:id/:revIndex', getDiff);
 
-// Revert the translation
+// Handles POST /api/translations/revisions/revert/:id/:revIndex
 router.post('/revert/:id/:revIndex', revertRevision);
-
-//router.use('/', requireRole('Translator'), translatorRouter);
 
 module.exports = router;

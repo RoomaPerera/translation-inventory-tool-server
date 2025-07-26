@@ -15,6 +15,7 @@ const { frontendURL } = require('../config/config');
 const Language = require('../models/Language');
 const UserActivity = require('../models/UserActivity');
 
+
 // Constants for expiry and messages
 const PASSWORD_RESET_EXPIRY_MINUTES = 15;
 const MSG_PASSWORD_RESET_SENT = 'Reset email sent. Please check your inbox.';
@@ -84,6 +85,8 @@ const loginUser = async (req, res) => {
     }
     try {
         const user = await User.login(email, password);
+        user.lastActivity = Date.now();
+        await user.save();
         const token = createToken({ id: user._id, role: user.role });
         // Prepare user object for frontend
         const userObj = {
@@ -93,6 +96,16 @@ const loginUser = async (req, res) => {
             role: user.role,
             roleStatus: user.roleStatus,
             languages: user.languages || [],
+
+        // THE FIX IS HERE: We now return the full user object
+        const userData = {
+            _id: user._id,       // Needed for API calls like assigning languages
+            userName: user.userName, // For the sidebar
+            email: user.email,
+            role: user.role,       // For the sidebar
+            languages: user.languages || [], // For the language modal
+            lastLogin: user.lastLogin,
+            isActive: user.isActive,
         };
         // Log successful login
         await UserActivity.create({
@@ -102,7 +115,8 @@ const loginUser = async (req, res) => {
             ip,
             details: { email }
         });
-        // send token as HTTP only secure cookie
+
+        // Send token as an HTTP-only secure cookie
         res.cookie('token', token, {
             httpOnly: true,
             secure: false, // changed from process.env.NODE_ENV === 'production' to false for local development
@@ -121,7 +135,14 @@ const loginUser = async (req, res) => {
             },
             token,
             message: 'Login successful'
+            secure: process.env.NODE_ENV === 'production',
+            sameSite: 'Strict',
+            path: '/',
+            maxAge: 2 * 60 * 60 * 1000 //2 hours in ms
+        }).status(200).json({
+            user: userData,
         });
+
     } catch (error) {
         // Log failed login
         await UserActivity.create({
@@ -132,6 +153,38 @@ const loginUser = async (req, res) => {
             details: { email }
         });
         res.status(400).json({ error: error.message });
+    }
+};
+
+/**
+ * @route   GET /api/auth/me
+ * @desc    Get current user info (verify authentication)
+ */
+const getCurrentUser = async (req, res) => {
+    try {
+        // req.user is set by requireAuth middleware
+        if (!req.user) {
+            return res.status(401).json({ error: 'Not authenticated' });
+        }
+
+        const user = await User.findById(req.user.id).select('-password');
+        if (!user) {
+            return res.status(404).json({ error: 'User not found' });
+        }
+
+        res.status(200).json({
+            user: {
+                id: user._id,
+                email: user.email,
+                userName: user.userName,
+                role: user.role,
+                // Include any other user fields you need on the frontend
+                languages: user.languages
+            }
+        });
+    } catch (error) {
+        console.error('getCurrentUser error:', error);
+        res.status(500).json({ error: 'Server error' });
     }
 };
 
@@ -307,4 +360,4 @@ module.exports = {
     logoutUser,
     getLanguages,
     getCurrentUser
-}; 
+};

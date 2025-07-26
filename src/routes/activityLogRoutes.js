@@ -16,4 +16,3 @@ router.get('/', requireAuth, (req, res, next) => {
 }, getActivityLogs);
 
 module.exports = router;
-
