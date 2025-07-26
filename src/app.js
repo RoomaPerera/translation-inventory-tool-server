@@ -6,17 +6,6 @@ const errorHandler = require('./middleware/errorMiddleware');
 const requireAuth = require('./middleware/requireAuth');
 const logger = require('./middleware/logger');
 const Scheduler = require('./utils/scheduler');
-const cookieParser = require('cookie-parser');
-const logger = require('./middleware/logger');
-const authRoutes = require('./routes/authRoutes');
-const userRoutes = require('./routes/userRoutes');
-const projectRoutes = require('./routes/projectRoutes');
-const languageRoutes = require('./routes/languageRoutes');
-const adminRoutes = require('./routes/adminRoutes');
-const developerRoutes = require('./routes/developerRoutes');
-const translationRoutes = require('./routes/translationRoutes');
-const revisionRoutes = require('./routes/revisionRoutes');
-const requireAuth = require('./middleware/requireAuth');
 
 
 // Import models to register schemas
