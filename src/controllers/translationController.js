@@ -97,7 +97,7 @@ exports.getTranslations = async (req, res, next) => {
   }
 };
 
-// ✅ Approve a Translation 
+// Approve a Translation 
 exports.approveTranslation = async (req, res, next) => {
   try {
     const translation = await Translation.findById(req.params.id);

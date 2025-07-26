@@ -32,7 +32,7 @@ exports.uploadTranslations = async (req, res) => {
       language,
       translatedText,
       product: req.body.product || 'Unknown Project',
-      context, // ✅ add context
+      context, 
       projectId,
       status: 'pending'
     },
