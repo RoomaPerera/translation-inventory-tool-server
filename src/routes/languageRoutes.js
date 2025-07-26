@@ -1,33 +1,28 @@
 const express = require('express');
 const router = express.Router();
-
-
 const {
     addLanguage,
     getAllLanguages,
     updateLanguage,
     deleteLanguage
 } = require('../controllers/languageController');
+const requireRole = require('../middleware/requireRole');
 
-//const requireAuth = require('../middleware/requireAuth');
-// Middleware
-//router.use(requireAuth);
+// Note: requireAuth is applied to this entire route file in app.js
 
-// Get all languages
+// GET all languages (accessible to all authenticated users)
 router.get('/', getAllLanguages);
 
-// Add a new language
+// --- Admin-Only Routes ---
+router.use(requireRole('Admin'));
+
+// POST a new language
 router.post('/', addLanguage);
 
-// Update a language by ID
+// PUT to update a language by ID
 router.put('/:id', updateLanguage);
 
-// Delete a language
+// DELETE a language
 router.delete('/:id', deleteLanguage);
-
-const { getLanguages } = require('../controllers/authController');
-
-// This route will handle GET /api/languages, which the frontend expects.
-router.get('/', getLanguages);
 
 module.exports = router;

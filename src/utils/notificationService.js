@@ -50,7 +50,7 @@ async function notifyNewTranslation(translation) {
         await sendMail({
             to: translator.email,
             subject: 'New Translation Added',
-            html: `<p>A new translation for ${translation.language} has been added: <br>${translation.text}</p>`
+            html: `<p>A new translation for ${translation.language} has been added: <br>${translation.translatedText}</p>`
         });
     }
 }

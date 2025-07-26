@@ -1,5 +1,4 @@
 //TranslationModel
-
 const { default: mongoose } = require("mongoose");
 
 const revisionSchema = new mongoose.Schema({

@@ -1,37 +1,34 @@
 require('dotenv').config();
 const express = require('express');
-const mongoose = require('mongoose');
 const cors = require('cors');
-const errorHandler = require('./middleware/errorMiddleware');
-
-// Import all primary route handlers
-const authRoutes = require('./routes/authRoutes');
-const userRoutes = require('./routes/userRoutes');
-
-const projectRoutes = require('./routes/projectRoutes');
-const adminRoutes = require('./routes/adminRoutes');
-const developerRoutes = require('./routes/developerRoutes');
-const translationRoutes = require('./routes/translationRoutes');
-const revisionRoutes = require('./routes/revisionRoutes');
 const cookieParser = require('cookie-parser');
+const errorHandler = require('./middleware/errorMiddleware');
 const requireAuth = require('./middleware/requireAuth');
-const fuzzyRoutes = require('./routes/fuzzyRoutes');
-const Scheduler = require('./utils/scheduler');
 const logger = require('./middleware/logger');
-const bulkRoutes = require('./routes/bulkOperations');
-const nlpRoutes = require('./routes/nlpRoutes');
-const languageRoutes = require('./routes/languageRoutes');
-
-
-// Express app initialization
-const app = express();
+const Scheduler = require('./utils/scheduler');
 
 // Import models to register schemas
 require('./models/User');
 require('./models/UserActivity');
 require('./models/Anomaly');
 
-// Middleware setup
+// --- Import All Route Handlers ---
+const authRoutes = require('./routes/authRoutes');
+const userRoutes = require('./routes/userRoutes');
+const projectRoutes = require('./routes/projectRoutes');
+const adminRoutes = require('./routes/adminRoutes');
+const developerRoutes = require('./routes/developerRoutes');
+const translationRoutes = require('./routes/translationRoutes');
+const fuzzyRoutes = require('./routes/fuzzyRoutes');
+const activityLogRoutes = require('./routes/activityLogRoutes');
+const anomalyRoutes = require('./routes/anomalies');
+const languageRoutes = require('./routes/languageRoutes');
+const nlpRoutes = require('./routes/nlpRoutes');
+
+// Express app initialization
+const app = express();
+
+// --- Middleware Setup ---
 app.use(cors({
     origin: process.env.FRONTEND_URL || 'http://localhost:5173',
     credentials: true,
@@ -39,49 +36,25 @@ app.use(cors({
 
 app.use(express.json());
 app.use(cookieParser());
+app.use(logger); // Log all requests
 
-app.use(logger); //  log all requests
-
-app.use((req, res, next) => {
-    console.log(`${new Date().toISOString()} - ${req.method} ${req.path}`);
-    next();
-});
-app.use('/api/activitylogs', require('./routes/activityLogRoutes'));
-
-
-// Parse JSON
-app.use(express.json());
-
-// Routes
+// --- API Routes ---
 app.use('/api/auth', authRoutes);
 app.use('/api/users', requireAuth, userRoutes);
+app.use('/api/translations', requireAuth, translationRoutes);
+app.use('/api/nlp', requireAuth, nlpRoutes);
 app.use('/api/projects', requireAuth, projectRoutes);
 app.use('/api/languages', requireAuth, languageRoutes);
 app.use('/api/admin', requireAuth, adminRoutes);
 app.use('/api/developer', requireAuth, developerRoutes);
-app.use('/api/translations', requireAuth, translationRoutes);
-app.use('/api/translations', requireAuth, revisionRoutes);
-app.use('/api', fuzzyRoutes);
-app.use('/api/activitylogs', require('./routes/activityLogRoutes'));
-app.use('/api/auth', require('./routes/auth'));
-app.use('/api/anomalies', require('./routes/anomalies'));
-app.use('/api/nlp', requireAuth, nlpRoutes);
+app.use('/api/activitylogs', requireAuth, activityLogRoutes);
+app.use('/api/anomalies', requireAuth, anomalyRoutes);
+app.use('/api', fuzzyRoutes); // public in this setup?
 
-// Start anomaly detection
+// Start anomaly detection scheduler
 Scheduler.start();
 
-// Error handling middleware
-app.use((err, req, res, next) => {
-
-    console.error('Global error handler:', err);
-    res.status(err.status || 500).json({
-        message: err.message || 'Internal Server Error',
-        error: process.env.NODE_ENV === 'development' ? err : {}
-    });
-});
-
-// Global Error Handler Middleware
+// Global Error Handler Middleware (consolidated)
 app.use(errorHandler);
 
-
-module.exports = app; 
+module.exports = app;

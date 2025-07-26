@@ -1,4 +1,3 @@
-//authController
 // handles user authentication, registration, and password workflow
 const User = require('../models/User');
 const bcrypt = require('bcrypt');
@@ -89,16 +88,15 @@ const loginUser = async (req, res) => {
         await user.save();
         const token = createToken({ id: user._id, role: user.role });
 
-
-        // Prepare user object for frontend
-        const userObj = {
-            id: user._id,
-            name: user.name,
+        // THE FIX IS HERE: We now return the full user object
+        const userData = {
+            _id: user._id,       // Needed for API calls like assigning languages
+            userName: user.userName, // For the sidebar
             email: user.email,
-            role: user.role,
+            role: user.role,       // For the sidebar
+            languages: user.languages || [], // For the language modal
             lastLogin: user.lastLogin,
             isActive: user.isActive,
-            languages: user.languages || [],
         };
         // Log successful login
         await UserActivity.create({
@@ -108,40 +106,17 @@ const loginUser = async (req, res) => {
             ip,
             details: { email }
         });
-        // send token as HTTP only secure cookie
-
-
-        // THE FIX IS HERE: We now return the full user object
-        const userData = {
-            _id: user._id,       // Needed for API calls like assigning languages
-            userName: user.userName, // For the sidebar
-            email: user.email,
-            role: user.role,       // For the sidebar
-            languages: user.languages // For the language modal
-        };
 
         // Send token as an HTTP-only secure cookie
-
-
         res.cookie('token', token, {
             httpOnly: true,
             secure: process.env.NODE_ENV === 'production',
             sameSite: 'Strict',
-
-
             path: '/',
             maxAge: 2 * 60 * 60 * 1000 //2 hours in ms
-
         }).status(200).json({
-            user: userObj,
-            userName: user.userName,
-            role: user.role,
-            email,
-            token,
-            userData,
-            message: 'Login successful'
+            user: userData,
         });
-
 
     } catch (error) {
         // Log failed login

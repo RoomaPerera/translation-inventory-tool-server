@@ -7,7 +7,6 @@ const {
     addTranslation,
     updateTranslation,
     getTranslations,
-    editTranslationText,
     deleteTranslation,
 } = require('../controllers/translationController');
 
@@ -22,20 +21,20 @@ router.get('/', getTranslations);
 // Handles POST /api/translations
 router.post('/', addTranslation);
 
-// PUT an update to a translation's text or status
+// PUT an update to a translation's text or status. This also handles revisions.
 // Handles PUT /api/translations/:id
 router.put('/:id', updateTranslation);
 
-// PATCH for specifically editing text, which creates a revision
-// Handles PATCH /api/translations/edit
-router.patch('/edit', editTranslationText);
+// DELETE a translation by ID
+// Handles DELETE /api/translations/:id
+router.delete('/:id', deleteTranslation);
 
 
 // === Sub-Router for Revisions ===
 // Any request starting with /api/translations/revisions will be passed to revisionRoutes.js
 router.use('/revisions', revisionRoutes);
 
-router.delete('/:id', deleteTranslation);
+
 
 
 module.exports = router;

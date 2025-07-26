@@ -38,6 +38,9 @@ const userSchema = new Schema({
         type: Date,
         default: null
     },
+    isActive: { type: Boolean, default: true },
+    lastLogin: Date,
+    createdAt: { type: Date, default: Date.now },
     resetTokenVersion: {
         type: Number,
         default: 0

@@ -62,7 +62,7 @@ def find_similar_translations(new_text: str, existing_translations: List[Dict[st
     similarities.sort(key=lambda x: x['similarity'], reverse=True)
 
     # Return the top 5 most useful suggestions.
-    return similarities[:5]
+    return similarities[:3]
 
 
 def extract_key_terms(text: str, top_n: int = 10) -> List[Dict[str, str]]:

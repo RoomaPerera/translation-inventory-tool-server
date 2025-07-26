@@ -3,16 +3,20 @@ const { notifyNewTranslation } = require('../utils/notificationService');
 const ActivityLog = require('../models/ActivityLog');
 const User = require('../models/User');
 
-
 // Add a Translation
 exports.addTranslation = async (req, res, next) => {
     try {
-        const { translationKey, language, translatedText, product } = req.body;
+        const { translationKey, language, translatedText, product, projectId, context } = req.body;
+        if (!projectId) {
+            return res.status(400).json({ error: 'Project ID is required.' });
+        }
         const newTranslation = new Translation({
             translationKey,
             language,
             translatedText,
             product,
+            projectId,
+            context,
             createdBy: req.user.id // Correctly assign the logged-in user's ID
         });
         await newTranslation.save();
@@ -44,37 +48,56 @@ exports.addTranslation = async (req, res, next) => {
     }
 };
 
-// Update a Translation
 exports.updateTranslation = async (req, res, next) => {
     try {
+        const { id } = req.params;
         const { translatedText, status } = req.body;
-        const updatedTranslation = await Translation.findByIdAndUpdate(
-            req.params.id,
-            { translatedText, status, updatedAt: Date.now() },
-            { new: true }
-        );
-        if (!updatedTranslation) {
-            return res.status(404).json({ error: 'Translation not found' });
-        }
-        res.json(updatedTranslation);
-    } catch (error) {
-        next(error);
-    }
-};
+        const userId = req.user.id;
 
-/**
- * Edit the translation text (by _id), pushing old text into revisions
- */
-exports.editTranslationText = async (req, res, next) => {
-    try {
-        const { id, translatedText } = req.body; // Using 'id' for consistency
         const translation = await Translation.findById(id);
+
         if (!translation) {
             return res.status(404).json({ error: 'Translation not found' });
         }
-        // Call the instance method from the model
-        await translation.addRevision(translatedText, req.user.id);
-        res.json({ message: 'Translation updated and revision saved', translation });
+
+        let updated = false;
+
+        // Handle status update
+        if (status && status !== translation.status) {
+            translation.status = status;
+            updated = true;
+        }
+
+        // Handle text update and create revision
+        if (translatedText && translatedText !== translation.translatedText) {
+            // This method handles saving the revision and updating the main text
+            await translation.addRevision(translatedText, userId);
+            // The addRevision method already saves, so we don't need to call save again unless only the status changed.
+        } else if (updated) {
+            // If only the status changed, we need to save manually
+            translation.updatedAt = Date.now();
+            await translation.save();
+        }
+
+        // --- Activity Log: User updates translation ---
+        try {
+            const user = await User.findById(userId).select('userName');
+            if (user) {
+                await ActivityLog.create({
+                    userId,
+                    userName: user.userName,
+                    role: req.user.role.toLowerCase(),
+                    description: `Updated translation for key: '${translation.translationKey}' in language: ${translation.language}`
+                });
+            }
+        } catch (logErr) {
+            console.error('ActivityLog error (updateTranslation):', logErr);
+        }
+
+        // Refetch to ensure the response object is fully up-to-date after addRevision
+        const updatedTranslation = await Translation.findById(id);
+
+        res.json(updatedTranslation);
     } catch (error) {
         next(error);
     }
@@ -83,20 +106,21 @@ exports.editTranslationText = async (req, res, next) => {
 // Fetch Translations with Filtering and Pagination
 exports.getTranslations = async (req, res, next) => {
     try {
-        console.log("--- RUNNING LATEST getTranslations CONTROLLER ---");
-        console.log("Received Query Params:", req.query);
         // Pagination parameters from query, with defaults
         const page = parseInt(req.query.page, 10) || 1;
         const limit = parseInt(req.query.limit, 10) || 10;
         const skip = (page - 1) * limit;
 
         // Filtering parameters
-        const { product, language, word, key } = req.query;
+        const { product, language, word, key, status, projectId, myWork } = req.query;
         const filter = {};
+        if (projectId) filter.projectId = projectId;
         if (product) filter.product = product;
         if (language) filter.language = language;
         if (word) filter.translatedText = { $regex: word, $options: 'i' };
         if (key) filter.translationKey = { $regex: key, $options: 'i' };
+        if (status) filter.status = status; // REQ-10: Filter by pending
+        if (myWork === 'true') filter.createdBy = req.user.id; // REQ-11: Filter by user's work
 
         // Execute two queries in parallel: one for the data, one for the total count
         const [translations, totalItems] = await Promise.all([
@@ -119,7 +143,6 @@ exports.getTranslations = async (req, res, next) => {
         next(error);
     }
 };
-
 
 // Delete a Translation by its ID
 exports.deleteTranslation = async (req, res, next) => {

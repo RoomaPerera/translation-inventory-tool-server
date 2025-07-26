@@ -35,10 +35,11 @@ const requireAuth = async (req, res, next) => {
     const idleMs = nowMs - issuedAtMs;
     const ageMs = nowMs - issuedAtMs;
 
-    if (idleMs > INACTIVITY_LIMIT_MS || ageMs > SESSION_EXPIRY_MS) {
+    //repeated below
+    {/* if (idleMs > INACTIVITY_LIMIT_MS || ageMs > SESSION_EXPIRY_MS) {
         console.log(`Session expired: idle=${idleMs}ms age=${ageMs}ms`);
         return res.status(401).json({ error: 'Session expired due to inactivity' })
-    }
+    } */}
     try {
         const user = await User.findById(payload.id).select('_id role');
         if (!user) {
