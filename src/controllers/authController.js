@@ -101,6 +101,7 @@ const loginUser = async (req, res) => {
             isActive: user.isActive,
         };
         
+        
         // Log successful login
         await UserActivity.create({
             user: user._id,
