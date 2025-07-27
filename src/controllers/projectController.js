@@ -104,24 +104,73 @@ const deleteProject = async (req, res) => {
     }
 };
 
-// Assign new languages to a project
+// Assign languages to a specific project
 const assignLanguagesToProject = async (req, res) => {
     try {
+        const { id } = req.params;
         const { languages } = req.body;
-        if (!Array.isArray(languages)) {
-            return res.status(400).json({ message: 'Languages must be an array' });
+        
+        console.log('Assigning languages to project:', id, 'Languages:', languages);
+        
+        // Validate project exists
+        const project = await Project.findById(id);
+        if (!project) {
+            return res.status(404).json({ error: 'Project not found' });
         }
 
-        const project = await Project.findById(req.params.id);
-        if (!project) return res.status(404).json({ message: 'Project not found' });
+        // Validate languages array
+        if (!Array.isArray(languages)) {
+            return res.status(400).json({ error: 'Languages must be an array' });
+        }
 
-        // Avoid duplicates
-        project.languages = [...new Set([...project.languages, ...languages])];
+        // Validate that the languages exist in the Language collection
+        const Language = require('../models/Language');
+        const validLanguages = await Language.find({
+            code: { $in: languages }
+        });
+
+        if (validLanguages.length !== languages.length) {
+            const validCodes = validLanguages.map(lang => lang.code);
+            const invalidCodes = languages.filter(code => !validCodes.includes(code));
+            return res.status(400).json({ 
+                error: `Invalid language codes: ${invalidCodes.join(', ')}` 
+            });
+        }
+
+        // Update project languages
+        project.languages = languages;
         await project.save();
 
-        res.status(200).json(project);
-    } catch (err) {
-        res.status(500).json({ error: err.message });
+        // Activity Log
+        try {
+            const userId = req.user?.id;
+            const userRole = req.user?.role;
+            if (userId && userRole) {
+                const user = await User.findById(userId).select('userName');
+                if (user) {
+                    await ActivityLog.create({
+                        userId,
+                        userName: user.userName,
+                        role: userRole.toLowerCase(),
+                        description: `Assigned languages [${languages.join(', ')}] to project: ${project.name}`
+                    });
+                }
+            }
+        } catch (logErr) {
+            console.error('ActivityLog error (assignLanguagesToProject):', logErr);
+        }
+
+        res.status(200).json({ 
+            message: 'Languages assigned successfully',
+            project: {
+                _id: project._id,
+                name: project.name,
+                languages: project.languages
+            }
+        });
+    } catch (error) {
+        console.error('Error assigning languages to project:', error);
+        res.status(500).json({ error: error.message });
     }
 };
 

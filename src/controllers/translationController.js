@@ -48,6 +48,72 @@ exports.addTranslation = async (req, res, next) => {
     }
 };
 
+// Add multiple translations at once (bulk creation)
+exports.addBulkTranslations = async (req, res, next) => {
+    try {
+        const { translations } = req.body;
+        
+        if (!translations || !Array.isArray(translations) || translations.length === 0) {
+            return res.status(400).json({ error: 'Translations array is required and cannot be empty.' });
+        }
+
+        // Validate that all translations have required fields
+        for (let i = 0; i < translations.length; i++) {
+            const { translationKey, language, projectId } = translations[i];
+            if (!translationKey || !language || !projectId) {
+                return res.status(400).json({ 
+                    error: `Translation at index ${i} is missing required fields (translationKey, language, projectId).` 
+                });
+            }
+        }
+
+        // Create all translations efficiently using insertMany
+        const userId = req.user?.id;
+        const userRole = req.user?.role;
+        
+        // Prepare all translation documents
+        const translationDocs = translations.map(translationData => ({
+            ...translationData,
+            createdBy: userId
+        }));
+        
+        // Bulk insert all translations at once
+        const createdTranslations = await Translation.insertMany(translationDocs);
+
+        // Send notifications in batch (non-blocking)
+        const notificationPromises = translations.map(translationData => 
+            notifyNewTranslation({ 
+                language: translationData.language, 
+                text: translationData.translatedText || '' 
+            }).catch(err => console.error('Notification error:', err))
+        );
+        
+        // Don't wait for notifications to complete
+        Promise.allSettled(notificationPromises);
+
+        // Activity Log: Bulk translation creation (async, non-blocking)
+        if (userId && userRole) {
+            User.findById(userId).select('userName').then(user => {
+                if (user) {
+                    ActivityLog.create({
+                        userId,
+                        userName: user.userName,
+                        role: userRole.toLowerCase(),
+                        description: `Added ${createdTranslations.length} translations in bulk for key: ${translations[0].translationKey}`
+                    }).catch(logErr => console.error('ActivityLog error (addBulkTranslations):', logErr));
+                }
+            }).catch(err => console.error('User lookup error:', err));
+        }
+
+        res.status(201).json({
+            message: `Successfully created ${createdTranslations.length} translations`,
+            translations: createdTranslations
+        });
+    } catch (error) {
+        next(error);
+    }
+};
+
 exports.updateTranslation = async (req, res, next) => {
     try {
         const { id } = req.params;
@@ -125,10 +191,12 @@ exports.getTranslations = async (req, res, next) => {
         // Execute two queries in parallel: one for the data, one for the total count
         const [translations, totalItems] = await Promise.all([
             Translation.find(filter)
-                .populate('createdBy', 'userName')
-                .sort({ createdAt: -1 }) // Sort by most recent
+                .populate('createdBy', 'userName') // Only populate required fields
+                .select('-revisions') // Exclude heavy revision data for list view
+                .sort({ createdAt: -1 }) // Sort by most recent (uses index)
                 .skip(skip)
-                .limit(limit),
+                .limit(limit)
+                .lean(), // Use lean() for better performance (returns plain objects)
             Translation.countDocuments(filter)
         ]);
 

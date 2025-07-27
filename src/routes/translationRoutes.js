@@ -5,6 +5,7 @@ const revisionRoutes = require('./revisionRoutes'); // Import the sub-router
 // Import all necessary translation controller functions
 const {
     addTranslation,
+    addBulkTranslations,
     updateTranslation,
     getTranslations,
     deleteTranslation,
@@ -20,6 +21,10 @@ router.get('/', getTranslations);
 // POST a new translation
 // Handles POST /api/translations
 router.post('/', addTranslation);
+
+// POST multiple translations at once (bulk creation)
+// Handles POST /api/translations/bulk
+router.post('/bulk', addBulkTranslations);
 
 // PUT an update to a translation's text or status. This also handles revisions.
 // Handles PUT /api/translations/:id
