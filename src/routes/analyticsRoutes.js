@@ -1,11 +1,25 @@
-const express = require('express');
-const router = express.Router();
-const analyticsController = require('../controllers/analyticsController');
+const router = require('express').Router();
+const requireAuth = require('../middleware/requireAuth');
+const {
+    getDashboardOverview,
+    getUserAnalytics,
+    getChartData,
+    exportAnalytics
+} = require('../controllers/analyticsController');
 
-// GET /api/analytics/dashboard?timeRange=7d
-router.get('/dashboard', analyticsController.getAllDashboardData);
+// Apply auth middleware to all routes
+router.use(requireAuth);
 
-// GET /api/analytics/export?format=json&timeRange=7d
-router.get('/export', analyticsController.exportDashboardData);
+// Get dashboard overview
+router.get('/overview', getDashboardOverview);
+
+// Get user-specific analytics
+router.get('/user', getUserAnalytics);
+
+// Get chart data
+router.get('/charts', getChartData);
+
+// Export analytics
+router.get('/export', exportAnalytics);
 
 module.exports = router;

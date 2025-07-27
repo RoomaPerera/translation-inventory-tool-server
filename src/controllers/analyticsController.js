@@ -1,338 +1,219 @@
-const Translation = require('../models/Translation');
-const Project = require('../models/Project');
 const User = require('../models/User');
-const ActivityLog = require('../models/ActivityLog');
+const Project = require('../models/Project');
+const Translation = require('../models/Translation');
 
-// Helper function to get date range
-const getDateRange = (timeRange) => {
-  const end = new Date();
-  const start = new Date();
-  
-  switch (timeRange) {
-    case '7d':
-      start.setDate(end.getDate() - 7);
-      break;
-    case '30d':
-      start.setDate(end.getDate() - 30);
-      break;
-    case '90d':
-      start.setDate(end.getDate() - 90);
-      break;
-    case '1y':
-      start.setFullYear(end.getFullYear() - 1);
-      break;
-    default:
-      start.setDate(end.getDate() - 7);
-  }
-  
-  return { start, end };
+// Get dashboard overview
+const getDashboardOverview = async (req, res) => {
+    try {
+        const [totalUsers, totalProjects, totalTranslations, activeProjects] = await Promise.all([
+            User.countDocuments({ roleStatus: 'Approved', deletedAt: null }),
+            Project.countDocuments(),
+            Translation.countDocuments(),
+            Project.countDocuments({ 
+                $expr: { $gt: ['$totalTranslations', '$completedTranslations'] }
+            })
+        ]);
+
+        const completedTranslations = await Translation.countDocuments({ status: 'completed' });
+        const completionRate = totalTranslations > 0 ? (completedTranslations / totalTranslations * 100) : 0;
+
+        res.json({
+            totalUsers,
+            totalProjects,
+            totalTranslations,
+            activeProjects,
+            completionRate: Math.round(completionRate * 100) / 100
+        });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
 };
 
-// Helper function to calculate word count
-const calculateWordCount = (text) => {
-  return text ? text.split(' ').filter(word => word.length > 0).length : 0;
+// Get user-specific analytics
+const getUserAnalytics = async (req, res) => {
+    try {
+        const { id, role } = req.user; // from auth middleware
+        
+        let analytics;
+        
+        switch(role) {
+            case 'Translator':
+                analytics = await getTranslatorAnalytics(id);
+                break;
+            case 'Developer':
+                analytics = await getDeveloperAnalytics(id);
+                break;
+            case 'Admin':
+                analytics = await getAdminAnalytics();
+                break;
+            default:
+                return res.status(400).json({ error: 'Invalid role' });
+        }
+        
+        res.json(analytics);
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
 };
 
-// Get all dashboard data
-const getAllDashboardData = async (req, res) => {
-  try {
-    const { timeRange = '7d' } = req.query;
-    const { start, end } = getDateRange(timeRange);
-
-    // Get KPIs
-    const kpis = await calculateKPIs(start, end);
+// Helper function for translator analytics
+const getTranslatorAnalytics = async (userId) => {
+    const translations = await Translation.find({ createdBy: userId });
+    const completedTranslations = translations.filter(t => t.status === 'completed');
     
-    // Get chart data
-    const qualityTrend = await getQualityTrend(start, end);
-    const processingTimes = await getProcessingTimes(start, end);
-    const productivity = await getProductivity(start, end);
-    const projectStatus = await getProjectStatus();
-
-    res.json({
-      kpis,
-      qualityTrend,
-      processingTimes,
-      productivity,
-      projectStatus
-    });
-  } catch (error) {
-    console.error('Analytics dashboard error:', error);
-    res.status(500).json({ error: 'Failed to fetch dashboard data' });
-  }
-};
-
-// Calculate KPIs
-const calculateKPIs = async (start, end) => {
-  try {
-    // Total translations in period
-    const totalTranslations = await Translation.countDocuments({
-      createdAt: { $gte: start, $lte: end }
-    });
-
-    // Completed translations
-    const completedTranslations = await Translation.countDocuments({
-      status: 'completed',
-      createdAt: { $gte: start, $lte: end }
-    });
-
-    // Average processing time (hours between created and updated)
-    const translationsWithTime = await Translation.find({
-      createdAt: { $gte: start, $lte: end },
-      updatedAt: { $exists: true }
-    }).select('createdAt updatedAt');
-
-    let totalProcessingHours = 0;
-    translationsWithTime.forEach(t => {
-      const hours = (new Date(t.updatedAt) - new Date(t.createdAt)) / (1000 * 60 * 60);
-      totalProcessingHours += hours;
-    });
-
-    const averageProcessingTime = translationsWithTime.length > 0 
-      ? (totalProcessingHours / translationsWithTime.length).toFixed(1)
-      : 0;
-
-    // Active translators (users who created translations in period)
-    const activeTranslators = await Translation.distinct('createdBy', {
-      createdAt: { $gte: start, $lte: end }
-    });
-
-    // Total words (estimate based on translated text)
-    const translations = await Translation.find({
-      createdAt: { $gte: start, $lte: end }
-    }).select('translatedText');
-
-    const totalWords = translations.reduce((total, t) => {
-      return total + calculateWordCount(t.translatedText);
+    const totalWordCount = translations.reduce((sum, t) => {
+        return sum + (t.translatedText ? t.translatedText.split(' ').length : 0);
     }, 0);
 
-    // Productivity (words per day)
-    const days = Math.max(1, Math.ceil((end - start) / (1000 * 60 * 60 * 24)));
-    const translatorProductivity = Math.round(totalWords / days);
-
-    // Quality score (simulate based on completed vs total ratio)
-    const qualityScore = totalTranslations > 0 
-      ? ((completedTranslations / totalTranslations) * 10).toFixed(1)
-      : 0;
+    const projects = await Project.find({ 
+        _id: { $in: translations.map(t => t.projectId) }
+    });
 
     return {
-      averageQualityScore: qualityScore,
-      qualityTrend: 0, // You can calculate this by comparing with previous period
-      averageProcessingTime: averageProcessingTime,
-      processingTimeTrend: 0, // You can calculate this by comparing with previous period
-      translatorProductivity: translatorProductivity,
-      completedProjects: completedTranslations,
-      completedProjectsTrend: 0, // You can calculate this by comparing with previous period
-      activeTranslators: activeTranslators.length,
-      totalWords: totalWords
+        totalTranslations: translations.length,
+        completedTranslations: completedTranslations.length,
+        totalWordCount,
+        activeProjects: projects.length,
+        completionRate: translations.length > 0 ? 
+            (completedTranslations.length / translations.length * 100) : 0,
+        recentActivity: translations.slice(-5).map(t => ({
+            translationKey: t.translationKey,
+            language: t.language,
+            status: t.status,
+            updatedAt: t.updatedAt
+        }))
     };
-  } catch (error) {
-    console.error('KPI calculation error:', error);
-    return {};
-  }
 };
 
-// Get quality trend data
-const getQualityTrend = async (start, end) => {
-  try {
-    const pipeline = [
-      {
-        $match: {
-          createdAt: { $gte: start, $lte: end }
-        }
-      },
-      {
-        $group: {
-          _id: {
-            $dateToString: { format: "%Y-%m-%d", date: "$createdAt" }
-          },
-          total: { $sum: 1 },
-          completed: {
-            $sum: { $cond: [{ $eq: ["$status", "completed"] }, 1, 0] }
-          }
-        }
-      },
-      {
-        $project: {
-          date: "$_id",
-          score: {
-            $cond: [
-              { $eq: ["$total", 0] },
-              0,
-              { $multiply: [{ $divide: ["$completed", "$total"] }, 10] }
-            ]
-          }
-        }
-      },
-      { $sort: { date: 1 } }
-    ];
-
-    const result = await Translation.aggregate(pipeline);
-    return result;
-  } catch (error) {
-    console.error('Quality trend error:', error);
-    return [];
-  }
-};
-
-// Get processing times by translator
-const getProcessingTimes = async (start, end) => {
-  try {
-    const pipeline = [
-      {
-        $match: {
-          createdAt: { $gte: start, $lte: end },
-          updatedAt: { $exists: true }
-        }
-      },
-      {
-        $lookup: {
-          from: 'users',
-          localField: 'createdBy',
-          foreignField: '_id',
-          as: 'user'
-        }
-      },
-      {
-        $unwind: '$user'
-      },
-      {
-        $group: {
-          _id: '$createdBy',
-          translator: { $first: '$user.userName' },
-          avgTime: {
-            $avg: {
-              $divide: [
-                { $subtract: ['$updatedAt', '$createdAt'] },
-                1000 * 60 * 60 // Convert to hours
-              ]
-            }
-          },
-          completed: { $sum: 1 }
-        }
-      },
-      {
-        $project: {
-          translator: 1,
-          avgTime: { $round: ['$avgTime', 1] },
-          completed: 1
-        }
-      },
-      { $sort: { avgTime: 1 } }
-    ];
-
-    const result = await Translation.aggregate(pipeline);
-    return result;
-  } catch (error) {
-    console.error('Processing times error:', error);
-    return [];
-  }
-};
-
-// Get daily productivity
-const getProductivity = async (start, end) => {
-  try {
-    const pipeline = [
-      {
-        $match: {
-          createdAt: { $gte: start, $lte: end }
-        }
-      },
-      {
-        $group: {
-          _id: {
-            $dateToString: { format: "%Y-%m-%d", date: "$createdAt" }
-          },
-          words: {
-            $sum: {
-              $size: {
-                $split: [
-                  { $trim: { input: "$translatedText" } },
-                  " "
-                ]
-              }
-            }
-          }
-        }
-      },
-      {
-        $project: {
-          date: "$_id",
-          words: 1
-        }
-      },
-      { $sort: { date: 1 } }
-    ];
-
-    const result = await Translation.aggregate(pipeline);
-    return result;
-  } catch (error) {
-    console.error('Productivity error:', error);
-    return [];
-  }
-};
-
-// Get project status distribution
-const getProjectStatus = async () => {
-  try {
-    const pipeline = [
-      {
-        $group: {
-          _id: '$status',
-          count: { $sum: 1 }
-        }
-      }
-    ];
-
-    const result = await Translation.aggregate(pipeline);
+// Helper function for developer analytics
+const getDeveloperAnalytics = async (userId) => {
+    const projects = await Project.find({ createdBy: userId });
+    const projectIds = projects.map(p => p._id);
     
-    // Map to chart format with colors
-    const statusMap = {
-      'completed': { name: 'Completed', color: '#10b981' },
-      'pending': { name: 'Pending', color: '#f59e0b' },
-      'in-progress': { name: 'In Progress', color: '#3b82f6' }
-    };
+    const translations = await Translation.find({ 
+        projectId: { $in: projectIds }
+    });
 
-    return result.map(item => ({
-      name: statusMap[item._id]?.name || item._id,
-      value: item.count,
-      color: statusMap[item._id]?.color || '#6b7280'
-    }));
-  } catch (error) {
-    console.error('Project status error:', error);
-    return [];
-  }
+    return {
+        totalProjectsManaged: projects.length,
+        totalTranslations: translations.length,
+        activeProjects: projects.filter(p => p.totalTranslations > p.completedTranslations).length,
+        recentProjects: projects.slice(-5).map(p => ({
+            name: p.name,
+            totalTranslations: p.totalTranslations || 0,
+            completedTranslations: p.completedTranslations || 0,
+            createdAt: p.createdAt
+        }))
+    };
 };
 
-// Export data (placeholder - implement based on your needs)
-const exportDashboardData = async (req, res) => {
-  try {
-    const { format, timeRange = '7d' } = req.query;
-    const { start, end } = getDateRange(timeRange);
-    
-    // Get all data
-    const data = {
-      kpis: await calculateKPIs(start, end),
-      qualityTrend: await getQualityTrend(start, end),
-      processingTimes: await getProcessingTimes(start, end),
-      productivity: await getProductivity(start, end),
-      projectStatus: await getProjectStatus()
-    };
+// Helper function for admin analytics
+const getAdminAnalytics = async () => {
+    const [users, projects, translations] = await Promise.all([
+        User.find({ deletedAt: null }),
+        Project.find(),
+        Translation.find()
+    ]);
 
-    if (format === 'json') {
-      res.setHeader('Content-Disposition', 'attachment; filename=analytics-report.json');
-      res.setHeader('Content-Type', 'application/json');
-      res.json(data);
-    } else {
-      // For PDF/Excel, you'd need additional libraries
-      res.status(400).json({ error: 'Export format not supported yet' });
+    const usersByRole = users.reduce((acc, user) => {
+        acc[user.role] = (acc[user.role] || 0) + 1;
+        return acc;
+    }, {});
+
+    const translationsByStatus = translations.reduce((acc, translation) => {
+        acc[translation.status] = (acc[translation.status] || 0) + 1;
+        return acc;
+    }, {});
+
+    return {
+        totalUsers: users.length,
+        totalProjects: projects.length,
+        totalTranslations: translations.length,
+        usersByRole,
+        translationsByStatus,
+        recentUsers: users.slice(-5).map(u => ({
+            userName: u.userName,
+            role: u.role,
+            roleStatus: u.roleStatus,
+            createdAt: u.createdAt
+        }))
+    };
+};
+
+// Get chart data
+const getChartData = async (req, res) => {
+    try {
+        const { period } = req.query; // '7d' or '30d'
+        const days = period === '30d' ? 30 : 7;
+        const startDate = new Date();
+        startDate.setDate(startDate.getDate() - days);
+
+        const translations = await Translation.find({
+            createdAt: { $gte: startDate }
+        }).sort({ createdAt: 1 });
+
+        const chartData = [];
+        for (let i = days - 1; i >= 0; i--) {
+            const date = new Date();
+            date.setDate(date.getDate() - i);
+            const dateStr = date.toISOString().split('T')[0];
+            
+            const dayTranslations = translations.filter(t => 
+                t.createdAt.toISOString().split('T')[0] === dateStr
+            );
+
+            chartData.push({
+                date: dateStr,
+                translations: dayTranslations.length,
+                completed: dayTranslations.filter(t => t.status === 'completed').length
+            });
+        }
+
+        res.json(chartData);
+    } catch (error) {
+        res.status(500).json({ error: error.message });
     }
-  } catch (error) {
-    console.error('Export error:', error);
-    res.status(500).json({ error: 'Failed to export data' });
-  }
+};
+
+// Export analytics
+const exportAnalytics = async (req, res) => {
+    try {
+        const { format } = req.query; // 'csv' or 'json'
+        
+        const [totalUsers, totalProjects, totalTranslations] = await Promise.all([
+            User.countDocuments({ roleStatus: 'Approved', deletedAt: null }),
+            Project.countDocuments(),
+            Translation.countDocuments()
+        ]);
+
+        const overview = {
+            totalUsers,
+            totalProjects,
+            totalTranslations,
+            exportedAt: new Date()
+        };
+        
+        if (format === 'csv') {
+            res.setHeader('Content-Type', 'text/csv');
+            res.setHeader('Content-Disposition', 'attachment; filename=analytics.csv');
+            
+            const csv = Object.entries(overview)
+                .map(([key, value]) => `${key},${value}`)
+                .join('\n');
+            res.send(`Metric,Value\n${csv}`);
+        } else {
+            res.setHeader('Content-Type', 'application/json');
+            res.setHeader('Content-Disposition', 'attachment; filename=analytics.json');
+            res.json(overview);
+        }
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
 };
 
 module.exports = {
-  getAllDashboardData,
-  exportDashboardData
+    getDashboardOverview,
+    getUserAnalytics,
+    getChartData,
+    exportAnalytics
 };

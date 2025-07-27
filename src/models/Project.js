@@ -25,6 +25,58 @@ const projectSchema = new mongoose.Schema({
         type: Date,
         default: Date.now
     },
+    // Add these fields after createdAt
+    // Analytics fields
+    totalTranslations: {
+        type: Number,
+        default: 0
+    },
+    completedTranslations: {
+        type: Number,
+        default: 0
+    },
+    pendingTranslations: {
+        type: Number,
+        default: 0
+    },
+    inProgressTranslations: {
+        type: Number,
+        default: 0
+    },
+    totalWordCount: {
+        type: Number,
+        default: 0
+    },
+    completedWordCount: {
+        type: Number,
+        default: 0
+    },
+    averageQualityScore: {
+        type: Number,
+        default: 0
+    },
+    lastActivityDate: {
+        type: Date
+    },
+    // Performance metrics
+    projectEfficiencyScore: {
+        type: Number,
+        default: 0
+    }, // 0-100
+    onTimeDeliveryRate: {
+        type: Number,
+        default: 0
+    }, // percentage
+    // Timeline tracking
+    estimatedCompletionDate: {
+        type: Date
+    },
+    actualStartDate: {
+        type: Date
+    },
+    actualCompletionDate: {
+        type: Date
+    },
 });
 
 // Optional: Add a virtual to check if default language is set
