@@ -5,7 +5,7 @@ const { notifyNewTranslation } = require('../utils/notificationService');
 const User = require('../models/User');
 const TranslationCheckResult = require('../models/TranslationCheckResult');
 const mockQualityScore = require('../utils/mockQualityScore'); // ✅ added
- const  detectLanguageSimple = require('../utils/detectLanguagecolls'); // ✅ added
+const  detectLanguageSimple = require('../utils/detectLanguagecolls'); // ✅ added
 // ----------------- CRUD CONTROLLERS ---------------------
 
 exports.addTranslation = async (req, res, next) => {
@@ -141,58 +141,6 @@ exports.deleteTranslation = async (req, res, next) => {
         next(error);
     }
 };
-
-// ---------------- QUALITY CHECK CONTROLLER ----------------
-
-// exports.qualityCheck = async (req, res, next) => {
-//     try {
-//         const { inputText, translatedText, expectedTargetLanguage } = req.body;
-
-//         if (!inputText || !translatedText || !expectedTargetLanguage) {
-//             return res.status(400).json({ error: "inputText, translatedText and expectedTargetLanguage are required" });
-//         }
-
-//         const detectedSourceLanguage = detectLanguageSimple(inputText);
-//         const detectedTargetLanguage = detectLanguageSimple(translatedText);
-
-//         const { score, marks, checkPassed } = mockQualityScore(
-//             inputText,
-//             translatedText,
-//             expectedTargetLanguage,
-//             detectedTargetLanguage
-//         );
-
-//         // If marks > 5, override languageMatch to true
-//         let languageMatch = detectedTargetLanguage.toLowerCase() === expectedTargetLanguage.toLowerCase();
-//         if (marks > 5) {
-//             languageMatch = true;
-//         }
-
-//         const result = new TranslationCheckResult({
-//             inputText,
-//             translatedText,
-//             detectedSourceLanguage,
-//             detectedTargetLanguage,
-//             languageMatch,
-//             score,
-//             marks,
-//             checkPassed
-//         });
-
-//         await result.save();
-
-//         res.json({
-//             detectedTargetLanguage,
-//             languageMatch,
-//             score,
-//             marks,
-//             checkPassed
-//         });
-//     } catch (error) {
-//         console.error(error);
-//         next(error);
-//     }
-// };
 
 
 exports.qualityCheck = async (req, res, next) => {

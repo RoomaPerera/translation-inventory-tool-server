@@ -1,133 +1,160 @@
 const path = require('path');
 const translationMap = require(path.join(__dirname, '../../uploads/translationMap.json'));
-const stringSimilarity = require('string-similarity');
 
-// Inline language code map
-const langMap = {
-    es: 'Spanish',
-    fr: 'French',
-    de: 'German',
-    si: 'Sinhala',
-    ta: 'Tamil',
-    zh: 'Chinese',
-    ja: 'Japanese',
-    ar: 'Arabic',
-    hi: 'Hindi'
+const langNameToCode = {
+  Spanish: 'es',
+  French: 'fr',
+  German: 'de',
+  Sinhala: 'si',
+  Tamil: 'ta',
+  Chinese: 'zh',
+  Japanese: 'ja',
+  Arabic: 'ar',
+  Hindi: 'hi'
 };
 
-// Convert "French" to "fr"
-const normalizeLang = (langName) => {
-    const found = Object.entries(langMap).find(([code, name]) => name.toLowerCase() === langName.toLowerCase());
-    return found ? found[0] : langName.toLowerCase(); // fallback to lowercase input
+const normalizeLang = (lang) => {
+  if (!lang || typeof lang !== 'string') return '';
+  const lowered = lang.toLowerCase();
+
+  if (Object.values(langNameToCode).includes(lowered)) {
+    return lowered;
+  }
+
+  for (const [name, code] of Object.entries(langNameToCode)) {
+    if (name.toLowerCase() === lowered) {
+      return code;
+    }
+  }
+
+  return lowered;
 };
-
-// const mockQualityScore = (input, output, expectedTargetLanguage, detectedTargetLanguage) => {
-//     if (!input || !output) {
-//         return {
-//             score: "Poor",
-//             marks: 0,
-//             checkPassed: false,
-//             languageMatch: false,
-//             matchRatio: 0
-//         };
-//     }
-
-//     const expectedLangCode = expectedTargetLanguage.toLowerCase();
-//     const detectedLangCode = normalizeLang(detectedTargetLanguage);
-
-//     const inputWords = input.trim().toLowerCase().split(/\s+/);
-//     const outputText = output.trim().toLowerCase();
-
-//     let matchCount = 0;
-
-//     for (let word of inputWords) {
-//         const translatedWord = translationMap[word]?.[expectedLangCode];
-//         if (translatedWord && outputText.includes(translatedWord.toLowerCase())) {
-//             matchCount++;
-//         }
-//     }
-
-//     const matchRatio = matchCount / inputWords.length;
-//     let marks = parseFloat((matchRatio * 10).toFixed(2));
-
-//     let score = "Poor";
-//     if (marks >= 7) score = "Excellent";
-//     else if (marks >= 5) score = "Good";
-//     else if (marks >= 3) score = "Fair";
-
-//     return {
-//         score,
-//         marks,
-//         checkPassed: marks >= 5,
-//         languageMatch: expectedLangCode === detectedLangCode,
-//         matchRatio
-//     };
-// };
 
 const mockQualityScore = (input, output, expectedTargetLanguage, detectedTargetLanguage) => {
-    if (!input || !output) {
-        return {
-            score: "Poor",
-            marks: 0,
-            checkPassed: false,
-            languageMatch: false,
-            matchRatio: 0
-        };
-    }
-
-    const expectedLangCode = expectedTargetLanguage.toLowerCase();
-    const detectedLangCode = normalizeLang(detectedTargetLanguage);
-
-    const inputWords = input.trim().toLowerCase().split(/\s+/);
-    const outputText = output.trim().toLowerCase();
-
-    let matchCount = 0;
-
-    for (let word of inputWords) {
-        const translatedWord = translationMap[word]?.[expectedLangCode];
-        if (translatedWord && outputText.includes(translatedWord.toLowerCase())) {
-            matchCount++;
-        }
-    }
-
-    const matchRatio = matchCount / inputWords.length;
-    
-    // Initial marks calculation (for example):
-    let marks = matchRatio * 10;
-
-    let score = "Poor";
-
-    // Assign score first based on marks
-    if (marks >= 8) {
-        const lengthDiff=Math.abs(inputWords.length - outputText.length);
-        if(inputWords.length <=output.length && lengthDiff <= 6) {
-            marks = matchRatio * 2 + 8;
-            score = "Excellent";
-
-        }
-        
-         // Recalculate marks for Excellent
-    } else if (marks >= 5) {
-        score = "Good";
-        marks = matchRatio * 3 + 5;  // Recalculate marks for Good
-    } else if (marks >= 3) {
-        score = "Fair";
-        marks = matchRatio * 2 + 3;  // Recalculate marks for Fair
-    } else {
-        marks = matchRatio * 3;      // Recalculate marks for Poor
-    }
-
-    // Fix marks to two decimals and clamp to max 10
-    marks = Math.min(10, parseFloat(marks.toFixed(2)));
-
+  if (!input || !output) {
+    console.log("⚠️ Input or output missing. Returning default poor score.");
     return {
-        score,
-        marks,
-        checkPassed: marks >= 5,
-        languageMatch: expectedLangCode === detectedLangCode,
-        matchRatio
+      score: "Poor",
+      marks: 0,
+      checkPassed: false,
+      languageMatch: false,
+      translationMatch: false,
+      matchRatio: 0
     };
-};
+  }
 
+  const expectedLangCode = normalizeLang(expectedTargetLanguage);
+  const detectedLangCode = normalizeLang(detectedTargetLanguage);
+
+  const inputWords = input.trim().toLowerCase().split(/\s+/);
+  const outputText = output.trim().toLowerCase();
+
+  const translationKey = inputWords.join('_');
+  const language = translationMap[translationKey] || {};
+
+  const expectedTranslation = language[expectedLangCode]?.toLowerCase() || "";
+
+  // 🖨️ Log details for debugging
+  console.log(`\n=== 🧪 Translation Quality Check ===`);
+  console.log(`🔑 Translation Key: ${translationKey}`);
+  console.log(`🔤 Output Text: ${outputText}`);
+  console.log(`🌐 Expected Language Code: ${expectedLangCode}`);
+  console.log(`🌍 Detected Language Code: ${detectedLangCode}`);
+  console.log(`📘 Language Entry from Map:`, language);
+  console.log(`📌 Expected Phrase Translation: ${expectedTranslation}`);
+
+  if (expectedTranslation === outputText) {
+    console.log(`✅ Exact match found for expected translation.`);
+    console.log(`🏁 Final Score: Excellent | Marks: 10`);
+    return {
+      score: "Excellent",
+      marks: 10,
+      checkPassed: true,
+      languageMatch: expectedLangCode === detectedLangCode,
+      translationMatch: true,
+      matchRatio: 1.0
+    };
+  }
+
+  if (expectedLangCode !== detectedLangCode){
+    const wordForTheDetectedLanguageCode = language[detectedLangCode]?.toLowerCase() || "";
+    if(outputText === wordForTheDetectedLanguageCode){
+    return {
+            score: "Excellent",
+            marks: 10,
+            checkPassed:true,
+            languageMatch: expectedLangCode === detectedLangCode,
+            matchRatio: 1.0,
+            };
+        }
+
+  }
+
+   if (expectedLangCode === detectedLangCode){
+    
+    return {
+            score: "Excellent",
+            marks: 10,
+            checkPassed:false,
+            languageMatch:false,
+            matchRatio: 1.0,
+            };
+        }
+
+  
+
+
+  if (expectedTranslation && outputText.includes(expectedTranslation)) {
+    console.log(`🟡 Partial match found for expected translation.`);
+    console.log(`🏁 Final Score: Good | Marks: 8`);
+    return {
+      score: "Good",
+      marks: 8,
+      checkPassed: true,
+      languageMatch: expectedLangCode === detectedLangCode,
+      translationMatch: false,
+      matchRatio: 0.5
+    };
+  }
+
+  // Word-level match check
+  let matchCount = 0;
+  for (let word of inputWords) {
+    const translatedWord = translationMap[word]?.[expectedLangCode];
+    if (translatedWord && outputText.includes(translatedWord.toLowerCase())) {
+      matchCount++;
+    }
+  }
+
+  const matchRatio = matchCount / inputWords.length;
+  const translationMatch = expectedTranslation === outputText;
+
+  let marks = 0;
+  let score = "Poor";
+
+  if (matchRatio > 0.7) {
+    score = "Fair";
+    marks = parseFloat((matchRatio * 7).toFixed(2));
+  } else if (matchRatio > 0.3) {
+    score = "Poor";
+    marks = parseFloat((matchRatio * 4).toFixed(2));
+  } else {
+    score = "Poor";
+    marks = parseFloat((matchRatio * 2).toFixed(2));
+  }
+
+  console.log(`🔍 Word Match Count: ${matchCount}`);
+  console.log(`📈 Match Ratio: ${matchRatio.toFixed(2)}`);
+  console.log(`🏁 Final Score: ${score} | Marks: ${marks}`);
+
+  return {
+    score,
+    marks,
+    checkPassed: marks >= 5,
+    languageMatch: expectedLangCode === detectedLangCode,
+    translationMatch,
+    matchRatio: parseFloat(matchRatio.toFixed(2))
+  };
+};
 
 module.exports = mockQualityScore;

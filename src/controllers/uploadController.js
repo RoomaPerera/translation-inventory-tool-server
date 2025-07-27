@@ -19,7 +19,7 @@ exports.uploadTranslations = async (req, res) => {
     for (const language of Object.keys(jsonData)) {
       const translations = jsonData[language];
 
-     for (const combinedKey of Object.keys(translations)) {
+    for (const combinedKey of Object.keys(translations)) {
   const translatedText = translations[combinedKey];
 
   // Split into key and optional context
@@ -36,6 +36,7 @@ exports.uploadTranslations = async (req, res) => {
       projectId,
       status: 'pending'
     },
+    
     { upsert: true, new: true }
   );
 

@@ -794,18 +794,7 @@
     "ar": "الآن",
     "hi": "अभी"
   },
-  "user": {
-    "en": "user",
-    "es": "usuario",
-    "fr": "utilisateur",
-    "de": "benutzer",
-    "ta": "பயனர்",
-    "si": "පරිශීලකයා",
-    "zh": "用户",
-    "ja": "ユーザー",
-    "ar": "مستخدم",
-    "hi": "उपयोगकर्ता"
-  },
+  
   "connect": {
     "en": "connect",
     "es": "conectar",
@@ -5159,11 +5148,59 @@
     "es": "parámetros",
     "fr": "paramètres",
     "de": "parameter",
-    "ta": "அளவுருக்கள்",
+    "tamil": "அளவுருக்கள்",
     "si": "පරාමිතීන්",
     "zh": "参数",
     "ja": "パラメータ",
     "ar": "معلمات",
     "hi": "पैरामीटर्स"
+  },
+  "greeting": {
+    "en": "greeting",
+    "es": "saludo",
+    "fr": "salutation",
+    "de": "gruß",
+    "ta": "வணக்கம்",
+    "si": "ආයුබෝවන්",
+    "zh": "问候",
+    "ja": "挨拶",
+    "ar": "تحية",
+    "hi": "नमस्ते"
+  },
+  "Save your settings": {
+    "en": "Save your settings",
+    "es": "Guarda tus configuraciones",
+    "fr": "Enregistrez vos paramètres",
+    "de": "Speichern Sie Ihre Einstellungen",
+    "ta": "உங்கள் அமைப்புகளை சேமிக்கவும்",
+    "si": "ඔබේ සැකසුම් සුරකින්න",
+    "zh": "保存您的设置",
+    "ja": "設定を保存する",
+    "ar": "حفظ إعداداتك",
+    "hi": "अपनी सेटिंग्स सहेजें"
+  },
+  "you":{
+    "en": "you",
+    "es": "tú",
+    "fr": "vous",
+    "de": "du",
+    "ta": "நீங்கள்",
+    "si": "ඔබ",
+    "zh": "你",
+    "ja": "あなた",
+    "ar": "أنت",
+    "hi": "आप"
+  },
+  "your":{
+    "en": "your",
+    "es": "tu",
+    "fr": "votre",
+    "de": "dein",
+    "ta": "நீங்கள்",
+    "si": "ඔබ",
+    "zh": "你的",
+    "ja": "あなたの",
+    "ar": "كن",
+    "hi": "आपका"
   }
 }
