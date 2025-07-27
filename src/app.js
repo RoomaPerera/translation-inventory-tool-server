@@ -52,8 +52,8 @@ app.use('/api/admin', requireAuth,adminRoutes);
 app.use('/api/developer', requireAuth,developerRoutes);   
 app.use('/api/translations', requireAuth,translationRoutes); 
 app.use('/api/translations', requireAuth, revisionRoutes);
-app.use('/api', fuzzyRoutes); 
-app.use('/api/analytics', analyticsRoutes);
+app.use('/api/fuzzy-search', requireAuth, fuzzyRoutes); 
+app.use('/api/analytics', requireAuth, analyticsRoutes);
 
 // Error handling middleware
 app.use((err, req, res, next) => {
