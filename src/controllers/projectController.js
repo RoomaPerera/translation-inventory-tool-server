@@ -2,6 +2,7 @@ const Project = require('../models/Project');
 
 const { notifyNewProject } = require('../utils/notificationService');
 const ActivityLog = require('../models/ActivityLog');
+const UserActivity = require('../models/UserActivity');
 const User = require('../models/User');
 
 
@@ -31,6 +32,24 @@ const addProject = async (req, res) => {
     await newProject.save();
     // Send notification to relevant translators
     await notifyNewProject(newProject);
+    
+    // --- UserActivity Log: For anomaly detection ---
+    try {
+        await UserActivity.create({
+            user: req.user.id,
+            type: 'project_created',
+            success: true,
+            ip: req.ip,
+            details: { 
+                projectId: newProject._id,
+                projectName: name,
+                languages: flattenedLanguages
+            }
+        });
+    } catch (activityErr) {
+        console.error('UserActivity error (addProject):', activityErr);
+    }
+    
     // --- Activity Log: User creates project ---
     try {
       const userId = req.user?.id;

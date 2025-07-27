@@ -103,13 +103,18 @@ const loginUser = async (req, res) => {
         
         
         // Log successful login
-        await UserActivity.create({
-            user: user._id,
-            type: 'login',
-            success: true,
-            ip,
-            details: { email }
-        });
+        try {
+            await UserActivity.create({
+                user: user._id,
+                type: 'login',
+                success: true,
+                ip,
+                details: { email }
+            });
+            console.log(`Successful login logged for user: ${email}`);
+        } catch (activityErr) {
+            console.error('Error logging successful login:', activityErr);
+        }
 
         // Send token as an HTTP-only secure cookie
         res.cookie('token', token, {
@@ -124,14 +129,22 @@ const loginUser = async (req, res) => {
         });
 
     } catch (error) {
+        console.log(`Login failed for email: ${email}, error: ${error.message}`);
+        
         // Log failed login
-        await UserActivity.create({
-            user: null,
-            type: 'failed_login',
-            success: false,
-            ip,
-            details: { email }
-        });
+        try {
+            await UserActivity.create({
+                user: null,
+                type: 'failed_login',
+                success: false,
+                ip,
+                details: { email, error: error.message }
+            });
+            console.log(`Failed login logged for email: ${email}`);
+        } catch (activityErr) {
+            console.error('Error logging failed login:', activityErr);
+        }
+        
         res.status(400).json({ error: error.message });
     }
 };

@@ -1,10 +1,20 @@
 const UserActivity = require('../models/UserActivity');
 const Anomaly = require('../models/Anomaly');
 const alertService = require('./alertService');
+const mongoose = require('mongoose');
 
 async function detectAnomalies() {
   try {
     console.log('Starting anomaly detection...');
+    
+    // Check database connection
+    const dbState = mongoose.connection.readyState;
+    if (dbState !== 1) {
+      console.error('Database not connected. State:', dbState);
+      console.error('0=disconnected, 1=connected, 2=connecting, 3=disconnecting');
+      return;
+    }
+    console.log('Database connection verified');
     
     // Get activities from the last 24 hours (more realistic timeframe)
     const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
@@ -21,9 +31,10 @@ async function detectAnomalies() {
     // 4. Detect suspicious user patterns (only recent)
     await detectSuspiciousUserPatterns(twentyFourHoursAgo);
     
-    console.log('Anomaly detection completed.');
+    console.log('Anomaly detection completed successfully');
   } catch (error) {
     console.error('Error in anomaly detection:', error);
+    // Don't throw - let scheduler continue
   }
 }
 
@@ -34,6 +45,8 @@ async function detectFailedLoginAnomalies(since) {
     type: 'failed_login',
     timestamp: { $gte: fiveMinutesAgo }
   });
+  
+  console.log(`🔍 Found ${failedLogins.length} failed login attempts in the last 5 minutes`);
   
   if (failedLogins.length === 0) {
     console.log('No failed login attempts detected in the last 5 minutes');
@@ -50,9 +63,14 @@ async function detectFailedLoginAnomalies(since) {
     loginAttemptsByIP[ip].push(activity);
   });
   
+  console.log(`Grouped by IP:`, Object.keys(loginAttemptsByIP).map(ip => `${ip}: ${loginAttemptsByIP[ip].length} attempts`));
+  
   // Check for suspicious patterns (only if there are real attempts)
   for (const [ip, attempts] of Object.entries(loginAttemptsByIP)) {
-    if (attempts.length >= 5) { // 5 attempts in 5 minutes
+    console.log(`Checking IP ${ip} with ${attempts.length} failed attempts`);
+    
+    if (attempts.length >= 4) { // 4 attempts in 5 minutes
+      console.log(`IP ${ip} has ${attempts.length} failed attempts - creating anomaly`);
       
       // Check if anomaly already exists for this IP in the last 5 minutes
       const existingAnomaly = await Anomaly.findOne({
@@ -70,7 +88,7 @@ async function detectFailedLoginAnomalies(since) {
       const anomaly = new Anomaly({
         type: 'login',
         message: `Multiple failed login attempts from IP: ${ip}`,
-        severity: attempts.length >= 5 ? 'high' : 'medium',
+        severity: attempts.length >= 4 ? 'high' : 'medium',
         reviewed: false,
         details: {
           ip: ip,
@@ -175,7 +193,7 @@ async function detectActivityBurstAnomalies() {
   
   // Check for unusual activity bursts (only if there are real activities)
   for (const [userId, count] of Object.entries(userActivityCounts)) {
-    if (count >= 15) { // Changed threshold to 15 actions in 30 minutes
+    if (count >= 8) { // Lowered threshold to 8 actions in 30 minutes
       
       // Check if anomaly already exists for this user in the last 30 minutes
       const existingAnomaly = await Anomaly.findOne({
@@ -238,7 +256,7 @@ async function detectSuspiciousUserPatterns(since) {
   for (const [userId, failures] of Object.entries(userFailures)) {
     const failureTypes = [...new Set(failures.map(f => f.type))];
     
-    if (failureTypes.length >= 10) { // 10 different failure types in 30 minutes
+    if (failureTypes.length >= 4) { // Lowered threshold to 4 different failure types in 30 minutes
       
       // Check if anomaly already exists for this user in the last 30 minutes
       const existingAnomaly = await Anomaly.findOne({

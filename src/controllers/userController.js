@@ -1,5 +1,6 @@
 // Admin level user management: approval, language updates, deletion, listing
 const User = require('../models/User');
+const UserActivity = require('../models/UserActivity');
 const mongoose = require('mongoose');
 const { getAllowedLanguageCodes } = require('../utils/languageHelper')
 const { sendMail } = require('../utils/mailer');
@@ -38,6 +39,24 @@ const approveUser = async (req, res) => {
     user.roleStatus = approve ? ROLE_STATUS.APPROVED : ROLE_STATUS.REJECTED;
     user.deletedAt = approve ? null : new Date();
     await user.save();
+    
+    // --- UserActivity Log: For anomaly detection ---
+    try {
+        await UserActivity.create({
+            user: req.user.id,
+            type: approve ? 'user_approved' : 'user_rejected',
+            success: true,
+            ip: req.ip,
+            details: { 
+                targetUserId: id,
+                targetUserEmail: user.email,
+                action: approve ? 'approved' : 'rejected'
+            }
+        });
+    } catch (activityErr) {
+        console.error('UserActivity error (approveUser):', activityErr);
+    }
+    
     if (approve) {
         await sendMail({
             to: user.email,

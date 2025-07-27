@@ -1,6 +1,7 @@
 const Translation = require('../models/Translation');
 const { notifyNewTranslation } = require('../utils/notificationService');
 const ActivityLog = require('../models/ActivityLog');
+const UserActivity = require('../models/UserActivity');
 const User = require('../models/User');
 
 // Add a Translation
@@ -27,6 +28,24 @@ exports.addTranslation = async (req, res, next) => {
 
         // Send notification to relevant translators
         await notifyNewTranslation({ language: normalizedLanguage, text: translatedText });
+        
+        // --- UserActivity Log: For anomaly detection ---
+        try {
+            await UserActivity.create({
+                user: req.user.id,
+                type: 'translation_created',
+                success: true,
+                ip: req.ip,
+                details: { 
+                    translationKey, 
+                    language: normalizedLanguage, 
+                    projectId 
+                }
+            });
+        } catch (activityErr) {
+            console.error('UserActivity error (addTranslation):', activityErr);
+        }
+        
         // --- Activity Log: User adds translation ---
         try {
             const userId = req.user?.id;
@@ -81,6 +100,25 @@ exports.updateTranslation = async (req, res, next) => {
             // If only the status changed, we need to save manually
             translation.updatedAt = Date.now();
             await translation.save();
+        }
+
+        // --- UserActivity Log: For anomaly detection ---
+        try {
+            await UserActivity.create({
+                user: userId,
+                type: 'translation_updated',
+                success: true,
+                ip: req.ip,
+                details: { 
+                    translationId: id,
+                    translationKey: translation.translationKey,
+                    language: translation.language,
+                    hasTextChange: !!translatedText,
+                    hasStatusChange: !!status
+                }
+            });
+        } catch (activityErr) {
+            console.error('UserActivity error (updateTranslation):', activityErr);
         }
 
         // --- Activity Log: User updates translation ---

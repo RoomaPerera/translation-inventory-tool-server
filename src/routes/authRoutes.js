@@ -27,7 +27,7 @@ const resetLimiter = rateLimit({
 
 //public routes
 router.post('/register', logActivity('register'), registerUser);
-router.post('/login', loginLimiter, logActivity('login'), loginUser);
+router.post('/login', loginLimiter, loginUser);
 router.post('/resetPassword', resetLimiter, logActivity('reset_password'), resetPassword);
 router.post('/setNewPassword', logActivity('set_new_password'), setNewPassword);
 router.get('/getLanguages', getLanguages);

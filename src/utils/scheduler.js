@@ -2,6 +2,7 @@ const cron = require('node-cron');
 const anomalyDetector = require('./anomalyDetector');
 
 let isRunning = false;
+let lastRunTime = null;
 
 function start() {
   console.log('Starting anomaly detection scheduler...');
@@ -14,7 +15,8 @@ function start() {
     }
     
     isRunning = true;
-    console.log('Running scheduled anomaly detection...');
+    lastRunTime = new Date();
+    console.log('Running scheduled anomaly detection...', lastRunTime.toISOString());
     
     try {
       await anomalyDetector.detectAnomalies();
@@ -37,6 +39,12 @@ function start() {
     }
   }, 30000);
   
+  // Add verification logging every minute
+  setInterval(() => {
+    console.log('Scheduler is running - Last run:', lastRunTime ? lastRunTime.toISOString() : 'Never');
+    console.log('Current status:', isRunning ? 'Running' : 'Idle');
+  }, 60000);
+  
   console.log('Scheduler started successfully');
   console.log('Anomaly detection will run every 5 minutes');
   console.log('Scanning real database data for security threats');
@@ -44,7 +52,7 @@ function start() {
 
 // Manual trigger for testing
 async function manualTrigger() {
-  console.log('🔧 Manual anomaly detection triggered...');
+  console.log('Manual anomaly detection triggered...');
   try {
     await anomalyDetector.detectAnomalies();
     console.log('Manual anomaly detection completed');
