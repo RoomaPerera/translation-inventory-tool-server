@@ -10,9 +10,13 @@ exports.addTranslation = async (req, res, next) => {
         if (!projectId) {
             return res.status(400).json({ error: 'Project ID is required.' });
         }
+        
+        // Convert language to uppercase for consistency with translator language storage
+        const normalizedLanguage = language.trim().toUpperCase();
+        
         const newTranslation = new Translation({
             translationKey,
-            language,
+            language: normalizedLanguage,
             translatedText,
             product,
             projectId,
@@ -22,7 +26,7 @@ exports.addTranslation = async (req, res, next) => {
         await newTranslation.save();
 
         // Send notification to relevant translators
-        await notifyNewTranslation({ language, text: translatedText });
+        await notifyNewTranslation({ language: normalizedLanguage, text: translatedText });
         // --- Activity Log: User adds translation ---
         try {
             const userId = req.user?.id;
@@ -34,7 +38,7 @@ exports.addTranslation = async (req, res, next) => {
                         userId,
                         userName: user.userName,
                         role: userRole.toLowerCase(),
-                        description: `Added a new translation for key: ${translationKey} in language: ${language}`
+                        description: `Added a new translation for key: ${translationKey} in language: ${normalizedLanguage}`
                     });
                 }
             }

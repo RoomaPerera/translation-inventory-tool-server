@@ -1,46 +1,61 @@
 const ActivityLog = require('../models/ActivityLog');
-const User = require('../models/User');
 
-// 1. Add a new activity 
-const addActivityLog = async (req, res) => {
-    try {
-        // Use authenticated user info
-        const { description } = req.body;
-        const { id, role } = req.user;
-        // Fetch userName from DB
-        const user = await User.findById(id).select('userName');
-        if (!user) return res.status(404).json({ message: 'User not found' });
-        const newLog = new ActivityLog({ userId: id, userName: user.userName, role: role.toLowerCase(), description });
-        await newLog.save();
-        res.status(201).json(newLog);
-    } catch (error) {
-        res.status(500).json({ message: error.message });
-    }
-};
-
-// 2. Get activity logs 
+// Get activity logs 
 const getActivityLogs = async (req, res) => {
-  console.log('getActivityLogs called, req.user:', req.user, 'req.query:', req.query);
+
   try {
     const { role, id } = req.user;
     let logs;
+    let query = {};
+    
+    // Build query based on user role
     if (role.toLowerCase() === 'admin') {
-      // Admin: filter by role or user if provided
-      const query = {};
+      // Admin: can filter by role, user, and date range
       if (req.query.filterRole) query.role = req.query.filterRole.toLowerCase();
       if (req.query.userId) query.userId = req.query.userId;
-      console.log('Admin query:', query);
-      logs = await ActivityLog.find(query).sort({ timeStamp: -1 });
-      console.log('Admin logs found:', logs);
+      
+      // Date filtering
+      if (req.query.startDate || req.query.endDate) {
+        query.timeStamp = {};
+        if (req.query.startDate) {
+          const startDate = new Date(req.query.startDate);
+          startDate.setHours(0, 0, 0, 0); // Start of day
+          query.timeStamp.$gte = startDate;
+        }
+        if (req.query.endDate) {
+          const endDate = new Date(req.query.endDate);
+          endDate.setHours(23, 59, 59, 999); // End of day
+          query.timeStamp.$lte = endDate;
+        }
+      }
+      
+      logs = await ActivityLog.find(query).sort({ timeStamp: -1 }).limit(parseInt(req.query.limit) || 100);
+      
     } else if (role.toLowerCase() === 'translator') {
       // Translator: always see only their own logs
-      const query = { userId: id, role: { $in: ['translator', 'Translator'] } };
-      console.log('Translator query:', query);
-      logs = await ActivityLog.find(query).sort({ timeStamp: -1 });
-      console.log('Translator logs found:', logs);
+      query = { userId: id, role: { $in: ['translator', 'Translator'] } };
+      
+      // Date filtering for translators
+      if (req.query.startDate || req.query.endDate) {
+        query.timeStamp = {};
+        if (req.query.startDate) {
+          const startDate = new Date(req.query.startDate);
+          startDate.setHours(0, 0, 0, 0); // Start of day
+          query.timeStamp.$gte = startDate;
+        }
+        if (req.query.endDate) {
+          const endDate = new Date(req.query.endDate);
+          endDate.setHours(23, 59, 59, 999); // End of day
+          query.timeStamp.$lte = endDate;
+        }
+      }
+      
+      logs = await ActivityLog.find(query).sort({ timeStamp: -1 }).limit(parseInt(req.query.limit) || 100);
+      
     } else {
       return res.status(403).json({ message: 'Unauthorized role' });
     }
+    
     res.status(200).json(logs);
   } catch (error) {
     console.error('Error in getActivityLogs:', error);
@@ -48,4 +63,4 @@ const getActivityLogs = async (req, res) => {
   }
 };
 
-module.exports = { addActivityLog, getActivityLogs };
+module.exports = { getActivityLogs };

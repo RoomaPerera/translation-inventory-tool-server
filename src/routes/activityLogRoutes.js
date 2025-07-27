@@ -1,12 +1,9 @@
 const express = require('express');
 const router = express.Router();
-const { addActivityLog, getActivityLogs } = require('../controllers/activityLogController');
+const { getActivityLogs } = require('../controllers/activityLogController');
 const requireAuth = require('../middleware/requireAuth');
-const requireRole = require('../middleware/requireRole');
 
-// All routes require authentication and role check
-router.post('/', requireAuth, requireRole('Admin'), addActivityLog);
-router.post('/', requireAuth, requireRole('Translator'), addActivityLog);
+// Get activity logs - Admin and Translator can view logs
 router.get('/', requireAuth, (req, res, next) => {
   const allowed = ['admin', 'translator'];
   if (!req.user || !allowed.includes(req.user.role.toLowerCase())) {

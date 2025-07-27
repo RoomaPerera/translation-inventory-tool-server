@@ -6,19 +6,6 @@ const errorHandler = require('./middleware/errorMiddleware');
 const requireAuth = require('./middleware/requireAuth');
 const logger = require('./middleware/logger');
 const Scheduler = require('./utils/scheduler');
-const cookieParser = require('cookie-parser');
-const logger = require('./middleware/logger');
-const authRoutes = require('./routes/authRoutes');
-const userRoutes = require('./routes/userRoutes');
-const projectRoutes = require('./routes/projectRoutes');
-const languageRoutes = require('./routes/languageRoutes');
-const adminRoutes = require('./routes/adminRoutes');
-const developerRoutes = require('./routes/developerRoutes');
-const translationRoutes = require('./routes/translationRoutes');
-const revisionRoutes = require('./routes/revisionRoutes');
-const requireAuth = require('./middleware/requireAuth');
-
-
 // Import models to register schemas
 require('./models/User');
 require('./models/UserActivity');
@@ -28,13 +15,14 @@ require('./models/Anomaly');
 const authRoutes = require('./routes/authRoutes');
 const userRoutes = require('./routes/userRoutes');
 const projectRoutes = require('./routes/projectRoutes');
+const languageRoutes = require('./routes/languageRoutes');
 const adminRoutes = require('./routes/adminRoutes');
 const developerRoutes = require('./routes/developerRoutes');
 const translationRoutes = require('./routes/translationRoutes');
+const revisionRoutes = require('./routes/revisionRoutes');
 const fuzzyRoutes = require('./routes/fuzzyRoutes');
 const activityLogRoutes = require('./routes/activityLogRoutes');
 const anomalyRoutes = require('./routes/anomalies');
-const languageRoutes = require('./routes/languageRoutes');
 const nlpRoutes = require('./routes/nlpRoutes');
 
 // Express app initialization

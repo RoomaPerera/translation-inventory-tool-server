@@ -68,28 +68,41 @@ async function notifyLanguageAssignment(translator, language) {
 
 // 4. Notify translators for a new translation
 async function notifyNewTranslation(translation) {
+  console.log('notifyNewTranslation called with:', translation);
+  
   try {
+    // Normalize language to uppercase to match stored translator languages
+    const normalizedLanguage = translation.language.trim().toUpperCase();
+    
     const translators = await User.find({
       role: 'Translator',
-      languages: translation.language
+      languages: normalizedLanguage
     });
     
-    console.log(`Found ${translators.length} translators for translation in: ${translation.language}`);
+    console.log(`Found ${translators.length} translators for translation in: ${normalizedLanguage}`);
+    
+    if (translators.length === 0) {
+      console.log('No translators found for language:', normalizedLanguage);
+      return;
+    }
     
     for (const translator of translators) {
       try {
+        console.log(`Attempting to send email to: ${translator.email}`);
         await sendMail({
           to: translator.email,
           subject: 'New Translation Added',
-          html: `<p>A new translation for ${translation.language} has been added: <br>${translation.text}</p>`
+          html: `<p>A new translation for ${normalizedLanguage} has been added: <br>${translation.text}</p>`
         });
         console.log(`Translation notification sent to: ${translator.email}`);
       } catch (emailError) {
         console.error(`Failed to send translation email to ${translator.email}:`, emailError.message);
+        console.error('Full error:', emailError);
       }
     }
   } catch (error) {
     console.error('Error in notifyNewTranslation:', error.message);
+    console.error('Full error:', error);
   }
 }
 
