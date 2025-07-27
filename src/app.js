@@ -24,21 +24,40 @@ const fuzzyRoutes = require('./routes/fuzzyRoutes');
 const activityLogRoutes = require('./routes/activityLogRoutes');
 const anomalyRoutes = require('./routes/anomalies');
 const nlpRoutes = require('./routes/nlpRoutes');
+const translationValidationRoutes = require('./routes/translationValidationRoutes');
+
+const requireAuth = require('./middleware/requireAuth');
+const logger = require('./middleware/logger');
+const errorHandler = require('./middleware/errorHandler');
 
 // Express app initialization
 const app = express();
 
 // --- Middleware Setup ---
 app.use(cors({
-    origin: process.env.FRONTEND_URL || 'http://localhost:5173',
-    credentials: true,
+  origin: process.env.CLIENT_ORIGIN || 'http://localhost:5173',
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  credentials: true,
 }));
 
 app.use(express.json());
 app.use(cookieParser());
-app.use(logger); // Log all requests
+app.use(express.urlencoded({ extended: true }));
+app.use(morgan('dev'));
 
-// --- API Routes ---
+app.use(logger);
+
+app.use('/api/activitylogs', require('./routes/activityLogRoutes'));
+
+app.get('/api/test', (req, res) => {
+  res.json({
+    message: 'API is working',
+    timestamp: new Date().toISOString(),
+    environment: process.env.NODE_ENV || 'development',
+  });
+});
+
+// Use routes with authentication where required
 app.use('/api/auth', authRoutes);
 app.use('/api/users', requireAuth, userRoutes);
 app.use('/api/translations', requireAuth, translationRoutes);
@@ -50,6 +69,7 @@ app.use('/api/developer', requireAuth, developerRoutes);
 app.use('/api/activitylogs', requireAuth, activityLogRoutes);
 app.use('/api/anomalies', requireAuth, anomalyRoutes);
 app.use('/api', fuzzyRoutes); // public in this setup?
+app.use('/api/tools',  translationValidationRoutes);
 
 // Start anomaly detection scheduler
 Scheduler.start();
@@ -58,3 +78,4 @@ Scheduler.start();
 app.use(errorHandler);
 
 module.exports = app;
+

@@ -1,3 +1,5 @@
+//routes/translationRoutes.js
+
 const express = require('express');
 const router = express.Router();
 const revisionRoutes = require('./revisionRoutes'); // Import the sub-router
@@ -7,6 +9,8 @@ const {
     addTranslation,
     updateTranslation,
     getTranslations,
+    approveTranslation ,
+    qualityCheck 
     deleteTranslation,
 } = require('../controllers/translationController');
 const requireRole = require('../middleware/requireRole');

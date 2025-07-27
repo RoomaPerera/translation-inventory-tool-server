@@ -1,11 +1,11 @@
+//middleware/requireAuth.js
 
+const jwt = require('jsonwebtoken');
 const { verifyToken, createToken } = require('../utils/jwt');
 const User = require('../models/User');
 
-//how long before force-logout from idle
-const INACTIVITY_LIMIT_MS = 15 * 60 * 1000 // 15min
-//hard cap on total session length
-const SESSION_EXPIRY_MS = 2 * 60 * 60 * 1000 //2 hours
+const INACTIVITY_LIMIT_MS = 15 * 60 * 1000; // 15 minutes
+const SESSION_EXPIRY_MS = 2 * 60 * 60 * 1000; // 2 hours
 
 const requireAuth = async (req, res, next) => {
     let token;
@@ -25,14 +25,14 @@ const requireAuth = async (req, res, next) => {
     }
     console.log('Raw token:', token);
 
-    let payload;
-    try {
-        payload = verifyToken(token);
-        console.log('Decoded payload:', payload);
-    } catch (error) {
-        console.log('JWT verify error: ', error.message);
-        return res.status(401).json({ error: 'Request is not Authorized' });
-    }
+  let payload;
+  try {
+    payload = verifyToken(token);
+    console.log('Decoded payload:', payload);
+  } catch (error) {
+    console.log('JWT verify error:', error.message);
+    return res.status(401).json({ error: 'Request is not Authorized' });
+  }
 
     //enforce inactivity and absolute session expiry
     const issuedAtMs = payload.iat * 1000;
