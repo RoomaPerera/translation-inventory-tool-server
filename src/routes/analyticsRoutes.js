@@ -4,7 +4,8 @@ const {
     getDashboardOverview,
     getUserAnalytics,
     getChartData,
-    exportAnalytics
+    exportAnalytics,
+    populateData
 } = require('../controllers/analyticsController');
 
 // Apply auth middleware to all routes
@@ -21,5 +22,8 @@ router.get('/charts', getChartData);
 
 // Export analytics
 router.get('/export', exportAnalytics);
+
+// Populate analytics data (admin only)
+router.post('/populate', populateData);
 
 module.exports = router;

@@ -211,9 +211,30 @@ const exportAnalytics = async (req, res) => {
     }
 };
 
+const { populateAnalyticsData } = require('../utils/populateAnalytics');
+
+// Populate analytics data for existing records
+const populateData = async (req, res) => {
+    try {
+        console.log('Starting data population...');
+        const result = await populateAnalyticsData();
+        res.json({
+            message: 'Analytics data populated successfully!',
+            ...result
+        });
+    } catch (error) {
+        console.error('Data population failed:', error);
+        res.status(500).json({ 
+            error: 'Failed to populate analytics data',
+            details: error.message 
+        });
+    }
+};
+
 module.exports = {
     getDashboardOverview,
     getUserAnalytics,
     getChartData,
-    exportAnalytics
+    exportAnalytics,
+    populateData
 };
