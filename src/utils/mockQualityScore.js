@@ -80,10 +80,10 @@ const mockQualityScore = (input, output, expectedTargetLanguage, detectedTargetL
     const wordForTheDetectedLanguageCode = language[detectedLangCode]?.toLowerCase() || "";
     if(outputText === wordForTheDetectedLanguageCode){
     return {
-            score: "Excellent",
-            marks: 10,
+            score: "Good",
+            marks: 5,
             checkPassed:true,
-            languageMatch: expectedLangCode === detectedLangCode,
+            languageMatch: false,
             matchRatio: 1.0,
             };
         }
@@ -93,8 +93,8 @@ const mockQualityScore = (input, output, expectedTargetLanguage, detectedTargetL
    if (expectedLangCode === detectedLangCode){
     
     return {
-            score: "Excellent",
-            marks: 10,
+            score: "Poor",
+            marks: 1,
             checkPassed:false,
             languageMatch:false,
             matchRatio: 1.0,
