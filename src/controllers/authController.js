@@ -2,7 +2,6 @@
 const User = require('../models/User');
 const bcrypt = require('bcrypt');
 const BlockedIP = require('../models/BlockedIP');
-const BlockedIP = require('../models/BlockedIP');
 const {
     createToken,
     createShortToken,
@@ -16,7 +15,6 @@ const { frontendURL } = require('../config/config');
 const Language = require('../models/Language');
 const UserActivity = require('../models/UserActivity');
 
-const UserActivity = require('../models/UserActivity');
 
 
 // Constants for expiry and messages
@@ -32,12 +30,6 @@ const ALLOWED_SELF_ROLES = ['Translator', 'Developer', 'Admin'];
 const registerUser = async (req, res) => {
     console.log('[registerUser] req.body =', req.body);
     const { userName, email, password, role, languages } = req.body;
-    // --- IP BLOCK CHECK ---
-    const ip = req.ip || req.connection.remoteAddress;
-    const blocked = await BlockedIP.findOne({ ip });
-    if (blocked) {
-        return res.status(403).json({ error: 'Your IP is blocked.' });
-    }
     // --- IP BLOCK CHECK ---
     const ip = req.ip || req.connection.remoteAddress;
     const blocked = await BlockedIP.findOne({ ip });
