@@ -16,11 +16,11 @@ const revisionSchema = new mongoose.Schema({
 const translationSchema = new mongoose.Schema({
     translationKey: { type: String, required: true },
     language: { type: String, required: true },
-    translatedText: { type: String, required: true },
-    product: { type: String, required: true },
+    translatedText: { type: String, default: '' }, // Allow empty strings for placeholders
+    product: { type: String, default: 'General' }, // Made optional with default value since we use projects now
     projectId: { type: mongoose.Schema.Types.ObjectId, ref: 'Project', required: true },
     context: { type: String },
-    status: { type: String, enum: ['pending', 'completed'], default: 'pending' }, // needs to be approved as well
+    status: { type: String, enum: ['pending', 'approved'], default: 'pending' }, // needs to be approved as well
     createdBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true }, // , required: true added newly
     createdAt: { type: Date, default: Date.now },
     updatedAt: { type: Date, default: Date.now },
@@ -54,5 +54,11 @@ translationSchema.methods.getCurrentVersion = function () {
     return this.version;
 }
 
+// Add indexes for better query performance
+translationSchema.index({ projectId: 1, language: 1 });
+translationSchema.index({ translationKey: 1 });
+translationSchema.index({ createdAt: -1 });
+translationSchema.index({ status: 1 });
+translationSchema.index({ projectId: 1, translationKey: 1, language: 1 }, { unique: true });
 
 module.exports = mongoose.model('Translation', translationSchema);
