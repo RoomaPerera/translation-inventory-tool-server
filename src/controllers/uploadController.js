@@ -25,19 +25,19 @@ exports.uploadTranslations = async (req, res) => {
                 // Split into key and optional context
                 const [translationKey, context] = combinedKey.split('__');  // ⬅️ e.g., "welcome__login"
 
-                await Translation.findOneAndUpdate(
-                    { projectId, translationKey, language, context },
-                    {
-                        translationKey,
-                        language,
-                        translatedText,
-                        product: req.body.product || 'Unknown Project',
-                        context, // ✅ add context
-                        projectId,
-                        status: 'pending'
-                    },
-                    { upsert: true, new: true }
-                );
+  await Translation.findOneAndUpdate(
+    { projectId, translationKey, language, context },
+    {
+      translationKey,
+      language,
+      translatedText,
+      product: req.body.product || 'Unknown Project',
+      context, 
+      projectId,
+      status: 'pending'
+    },
+    { upsert: true, new: true }
+  );
 
                 upsertCount++;
             }

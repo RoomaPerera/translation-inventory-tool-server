@@ -20,6 +20,7 @@ const adminRoutes = require('./routes/adminRoutes');
 const developerRoutes = require('./routes/developerRoutes');
 const translationRoutes = require('./routes/translationRoutes');
 const revisionRoutes = require('./routes/revisionRoutes');
+const analyticsRoutes = require('./routes/analyticsRoutes');
 const fuzzyRoutes = require('./routes/fuzzyRoutes');
 const activityLogRoutes = require('./routes/activityLogRoutes');
 const anomalyRoutes = require('./routes/anomalies');
@@ -49,7 +50,8 @@ app.use('/api/admin', requireAuth, adminRoutes);
 app.use('/api/developer', requireAuth, developerRoutes);
 app.use('/api/activitylogs', requireAuth, activityLogRoutes);
 app.use('/api/anomalies', requireAuth, anomalyRoutes);
-app.use('/api', fuzzyRoutes); // public in this setup?
+app.use('/api/fuzzy-search', requireAuth, fuzzyRoutes); 
+app.use('/api/analytics', requireAuth, analyticsRoutes);
 
 // Start anomaly detection scheduler
 Scheduler.start();

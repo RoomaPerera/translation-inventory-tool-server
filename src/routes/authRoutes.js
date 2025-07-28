@@ -33,6 +33,7 @@ router.post('/setNewPassword', logActivity('set_new_password'), setNewPassword);
 router.get('/getLanguages', getLanguages);
 
 router.use(requireAuth);
+router.use(requireAuth);
 //protected routes
 router.post('/changePassword', requireAuth, logActivity('change_password'), changePassword);
 router.get('/logout', requireAuth, logActivity('logout'), logoutUser);

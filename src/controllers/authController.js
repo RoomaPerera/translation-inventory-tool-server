@@ -2,6 +2,7 @@
 const User = require('../models/User');
 const bcrypt = require('bcrypt');
 const BlockedIP = require('../models/BlockedIP');
+const BlockedIP = require('../models/BlockedIP');
 const {
     createToken,
     createShortToken,
@@ -13,6 +14,8 @@ const { getAllowedLanguageCodes } = require('../utils/languageHelper');
 const { isStrongPassword } = require('../models/User');
 const { frontendURL } = require('../config/config');
 const Language = require('../models/Language');
+const UserActivity = require('../models/UserActivity');
+
 const UserActivity = require('../models/UserActivity');
 
 
@@ -29,6 +32,12 @@ const ALLOWED_SELF_ROLES = ['Translator', 'Developer', 'Admin'];
 const registerUser = async (req, res) => {
     console.log('[registerUser] req.body =', req.body);
     const { userName, email, password, role, languages } = req.body;
+    // --- IP BLOCK CHECK ---
+    const ip = req.ip || req.connection.remoteAddress;
+    const blocked = await BlockedIP.findOne({ ip });
+    if (blocked) {
+        return res.status(403).json({ error: 'Your IP is blocked.' });
+    }
     // --- IP BLOCK CHECK ---
     const ip = req.ip || req.connection.remoteAddress;
     const blocked = await BlockedIP.findOne({ ip });
@@ -68,6 +77,8 @@ const registerUser = async (req, res) => {
     } catch (error) {
         console.error('[registerUser] Error:', error.message, error.stack);
         res.status(400).json({ error: error.message || 'Registration failed' });
+        console.error('[registerUser] Error:', error.message, error.stack);
+        res.status(400).json({ error: error.message || 'Registration failed' });
     }
 };
 
@@ -85,6 +96,8 @@ const loginUser = async (req, res) => {
     }
     try {
         const user = await User.login(email, password);
+        user.lastActivity = Date.now();
+        await user.save();
         user.lastActivity = Date.now();
         await user.save();
         const token = createToken({ id: user._id, role: user.role });

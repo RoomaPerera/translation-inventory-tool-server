@@ -44,6 +44,38 @@ const userSchema = new Schema({
     resetTokenVersion: {
         type: Number,
         default: 0
+    },
+     totalProjectsAssigned: {
+        type: Number,
+        default: 0
+    },
+    activeProjects: {
+        type: Number,
+        default: 0
+    },
+    lastLoginDate: {
+        type: Date
+    },
+     translatorStats: {
+        totalTranslationsCompleted: { type: Number, default: 0 },
+        totalWordsTranslated: { type: Number, default: 0 },
+        averageTranslationQuality: { type: Number, default: 0 },
+        averageCompletionTime: { type: Number, default: 0 }, // in hours
+        specializedLanguages: [{ type: String }],
+        productivityScore: { type: Number, default: 0 }, // words per hour
+        onTimeDeliveryRate: { type: Number, default: 0 }
+    },
+    developerStats: {
+        totalProjectsManaged: { type: Number, default: 0 },
+        activeProjectsManaged: { type: Number, default: 0 },
+        teamMembersManaged: { type: Number, default: 0 },
+        projectSuccessRate: { type: Number, default: 0 },
+        averageProjectDuration: { type: Number, default: 0 } // in days
+    },
+    adminStats: {
+        totalUsersManaged: { type: Number, default: 0 },
+        systemUptimeResponsibility: { type: Number, default: 0 },
+        totalSystemConfigurations: { type: Number, default: 0 }
     }
 }, { timestamps: true })
 

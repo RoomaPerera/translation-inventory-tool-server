@@ -8,7 +8,9 @@ const {
 } = require('../controllers/languageController');
 const requireRole = require('../middleware/requireRole');
 
-// Note: requireAuth is applied to this entire route file in app.js
+const requireAuth = require('../middleware/requireAuth');
+// Middleware
+router.use(requireAuth);
 
 // GET all languages (accessible to all authenticated users)
 router.get('/', getAllLanguages);

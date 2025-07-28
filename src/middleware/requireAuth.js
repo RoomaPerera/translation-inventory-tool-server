@@ -23,7 +23,7 @@ const requireAuth = async (req, res, next) => {
         console.log('No token found, sending 401');
         return res.status(401).json({ mssg: 'Authorization token required' });
     }
-    console.log('Raw token:', token);
+    //console.log('Raw token:', token);
 
     let payload;
     try {

@@ -26,6 +26,7 @@ exports.addTranslation = async (req, res, next) => {
         });
         await newTranslation.save();
 
+
         // Send notification to relevant translators
         await notifyNewTranslation({ language: normalizedLanguage, text: translatedText });
         
@@ -64,6 +65,7 @@ exports.addTranslation = async (req, res, next) => {
         } catch (logErr) {
             console.error('ActivityLog error (addTranslation):', logErr);
         }
+
 
         res.status(201).json(newTranslation);
     } catch (error) {
