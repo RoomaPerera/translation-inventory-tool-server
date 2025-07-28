@@ -69,6 +69,9 @@ const getTranslatorAnalytics = async (userId) => {
         _id: { $in: translations.map(t => t.projectId) }
     });
 
+    // Get user record to access real stats
+    const user = await User.findById(userId);
+
     return {
         totalTranslations: translations.length,
         completedTranslations: completedTranslations.length,
@@ -76,6 +79,17 @@ const getTranslatorAnalytics = async (userId) => {
         activeProjects: projects.length,
         completionRate: translations.length > 0 ? 
             (completedTranslations.length / translations.length * 100) : 0,
+        
+        // Return real translator stats from database
+        translatorStats: {
+            totalTranslationsCompleted: user?.translatorStats?.totalTranslationsCompleted || completedTranslations.length,
+            totalWordsTranslated: user?.translatorStats?.totalWordsTranslated || totalWordCount,
+            averageTranslationQuality: user?.translatorStats?.averageTranslationQuality || null,
+            averageCompletionTime: user?.translatorStats?.averageCompletionTime || null,
+            productivityScore: user?.translatorStats?.productivityScore || Math.round(totalWordCount / Math.max(translations.length, 1)),
+            onTimeDeliveryRate: user?.translatorStats?.onTimeDeliveryRate || Math.round((completedTranslations.length / Math.max(translations.length, 1)) * 100)
+        },
+        
         recentActivity: translations.slice(-5).map(t => ({
             translationKey: t.translationKey,
             language: t.language,
@@ -94,10 +108,23 @@ const getDeveloperAnalytics = async (userId) => {
         projectId: { $in: projectIds }
     });
 
+    // Get user record for real stats
+    const user = await User.findById(userId);
+
     return {
         totalProjectsManaged: projects.length,
         totalTranslations: translations.length,
         activeProjects: projects.filter(p => p.totalTranslations > p.completedTranslations).length,
+        
+        // Return real developer stats
+        developerStats: {
+            totalProjectsManaged: user?.developerStats?.totalProjectsManaged || projects.length,
+            activeProjectsManaged: user?.developerStats?.activeProjectsManaged || projects.filter(p => p.totalTranslations > p.completedTranslations).length,
+            teamMembersManaged: user?.developerStats?.teamMembersManaged || 0,
+            projectSuccessRate: user?.developerStats?.projectSuccessRate || 0,
+            averageProjectDuration: user?.developerStats?.averageProjectDuration || 0
+        },
+        
         recentProjects: projects.slice(-5).map(p => ({
             name: p.name,
             totalTranslations: p.totalTranslations || 0,
@@ -211,30 +238,9 @@ const exportAnalytics = async (req, res) => {
     }
 };
 
-const { populateAnalyticsData } = require('../utils/populateAnalytics');
-
-// Populate analytics data for existing records
-const populateData = async (req, res) => {
-    try {
-        console.log('Starting data population...');
-        const result = await populateAnalyticsData();
-        res.json({
-            message: 'Analytics data populated successfully!',
-            ...result
-        });
-    } catch (error) {
-        console.error('Data population failed:', error);
-        res.status(500).json({ 
-            error: 'Failed to populate analytics data',
-            details: error.message 
-        });
-    }
-};
-
 module.exports = {
     getDashboardOverview,
     getUserAnalytics,
     getChartData,
-    exportAnalytics,
-    populateData
+    exportAnalytics
 };

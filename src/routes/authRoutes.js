@@ -7,13 +7,15 @@ const {
     changePassword,
     setNewPassword,
     logoutUser,
-    getLanguages
+    getLanguages,
+    getCurrentUser
 } = require('../controllers/authController');
 const requireAuth = require('../middleware/requireAuth');
 const rateLimit = require('express-rate-limit');
+const logActivity = require('../middleware/activityLogger');
 
 const loginLimiter = rateLimit({
-    windowMs: 60 * 1000,
+    windowMs: 15 * 60 * 1000, // 15 minutes
     max: 5,
     message: { error: 'Too many login attempts, please try again later.' }
 })
@@ -24,14 +26,16 @@ const resetLimiter = rateLimit({
 })
 
 //public routes
-router.post('/register', registerUser);
-router.post('/login', loginLimiter, loginUser);
-router.post('/resetPassword', resetLimiter, resetPassword);
-router.post('/setNewPassword', setNewPassword);
+router.post('/register', logActivity('register'), registerUser);
+router.post('/login', loginLimiter, logActivity('login'), loginUser);
+router.post('/resetPassword', resetLimiter, logActivity('reset_password'), resetPassword);
+router.post('/setNewPassword', logActivity('set_new_password'), setNewPassword);
 router.get('/getLanguages', getLanguages);
 
+router.use(requireAuth);
 //protected routes
-router.post('/changePassword', requireAuth, changePassword);
-router.get('/logout', requireAuth, logoutUser);
+router.post('/changePassword', requireAuth, logActivity('change_password'), changePassword);
+router.get('/logout', requireAuth, logActivity('logout'), logoutUser);
+router.get('/me', requireAuth, getCurrentUser);
 
 module.exports = router;

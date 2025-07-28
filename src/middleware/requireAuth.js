@@ -18,7 +18,7 @@ const requireAuth = async (req, res, next) => {
     if (!token) {
         return res.status(401).json({ mssg: 'Authorization token required' });
     }
-    console.log('Raw token:', token);
+    //console.log('Raw token:', token);
 
     let payload;
     try {

@@ -25,7 +25,6 @@ const projectSchema = new mongoose.Schema({
         type: Date,
         default: Date.now
     },
-    // Add these fields after createdAt
     // Analytics fields
     totalTranslations: {
         type: Number,
