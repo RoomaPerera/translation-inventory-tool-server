@@ -1,8 +1,7 @@
+// translationRoutes.js - FIXED VERSION
 const express = require('express');
 const router = express.Router();
-const revisionRoutes = require('./revisionRoutes'); // Import the sub-router
 
-// Import all necessary translation controller functions
 const {
     addTranslation,
     updateTranslation,
@@ -10,6 +9,13 @@ const {
     deleteTranslation,
 } = require('../controllers/translationController');
 
+// Import revision controller functions
+const {
+    getRevisions,
+    getDiff,
+    revertRevision,
+    getCompleteHistory
+} = require('../controllers/revisionController');
 
 // === Main Translation CRUD Routes ===
 
@@ -29,12 +35,17 @@ router.put('/:id', updateTranslation);
 // Handles DELETE /api/translations/:id
 router.delete('/:id', deleteTranslation);
 
+// === Revision Routes ===
+// GET /api/translations/:id/revisions
+router.get('/:id/revisions', getRevisions);
 
-// === Sub-Router for Revisions ===
-// Any request starting with /api/translations/revisions will be passed to revisionRoutes.js
-router.use('/revisions', revisionRoutes);
+// GET /api/translations/:id/diff/:revIndex  
+router.get('/:id/diff/:revIndex', getDiff);
 
+// POST /api/translations/:id/revert/:revIndex
+router.post('/:id/revert/:revIndex', revertRevision);
 
-
+// GET /api/translations/:id/history - Complete history including current version
+router.get('/:id/history', getCompleteHistory);
 
 module.exports = router;

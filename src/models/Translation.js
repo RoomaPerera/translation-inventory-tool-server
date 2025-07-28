@@ -1,4 +1,4 @@
-//TranslationModel
+// Translation.js - FIXED VERSION
 const { default: mongoose } = require("mongoose");
 
 const revisionSchema = new mongoose.Schema({
@@ -20,8 +20,9 @@ const translationSchema = new mongoose.Schema({
     product: { type: String, required: true },
     projectId: { type: mongoose.Schema.Types.ObjectId, ref: 'Project', required: true },
     context: { type: String },
-    status: { type: String, enum: ['pending', 'completed'], default: 'pending' }, // needs to be approved as well
-    createdBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true }, // , required: true added newly
+    // FIXED: Added 'approved' to enum
+    status: { type: String, enum: ['pending', 'approved'], default: 'pending' },
+    createdBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
     createdAt: { type: Date, default: Date.now },
     updatedAt: { type: Date, default: Date.now },
     revisions: {
@@ -35,24 +36,34 @@ const translationSchema = new mongoose.Schema({
 });
 
 translationSchema.methods.addRevision = async function (newText, userId, maxRevisions = 6) {
-    this.revisions.unshift({ text: this.translatedText, author: userId });
-    if (this.revisions.length > maxRevisions) {
-        this.revisions = this.revisions.slice(0, maxRevisions);
+    // Only add revision if text actually changed
+    if (this.translatedText !== newText) {
+        this.revisions.unshift({
+            text: this.translatedText,
+            author: userId,
+            createdAt: new Date()
+        });
+
+        if (this.revisions.length > maxRevisions) {
+            this.revisions = this.revisions.slice(0, maxRevisions);
+        }
+
+        this.translatedText = newText;
+        this.updatedAt = Date.now();
+        this.version += 1;
     }
-    this.translatedText = newText;
-    this.updatedAt = Date.now();
-    this.version = (this.version || 1) + 1;
-    this.createdBy = userId;
+
     return this.save();
 }
-// method to check for version conflicts
+
+// Method to check for version conflicts
 translationSchema.methods.checkVersionConflict = function (clientVersion) {
     return this.version !== clientVersion;
 }
-// method to get the current version
+
+// Method to get the current version
 translationSchema.methods.getCurrentVersion = function () {
     return this.version;
 }
-
 
 module.exports = mongoose.model('Translation', translationSchema);
