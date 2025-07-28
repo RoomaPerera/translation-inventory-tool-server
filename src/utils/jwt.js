@@ -9,8 +9,8 @@ function verifyToken(token) {
     return jwt.verify(token, jwtSecret);
 }
 
-function createShortToken(payload) {
-    return jwt.sign(payload, jwtSecret, { expiresIn: '15m' });
+function createShortToken(id) {
+    return jwt.sign({id},process.env.JWT_SECRET , { expiresIn: '15m' });
 }
 
 module.exports = {

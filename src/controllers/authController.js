@@ -5,7 +5,7 @@ const BlockedIP = require('../models/BlockedIP');
 const jwt = require('jsonwebtoken');
 const nodemailer = require('nodemailer');
 
-const createToken2 = (id) => jwt.sign({ id }, process.env.JWT_SECRET, { expiresIn: '2h' });
+// const createShortToken = (id) => jwt.sign({ id }, process.env.JWT_SECRET, { expiresIn: '2h' });
 
 const {
     createToken,
@@ -334,8 +334,8 @@ try {
     if (!user || user.roleStatus !== 'Approved') {
     throw new Error('User not found or not approved');
     }
-
-    const resetToken = createToken2(user._id, process.env.RESET_SECRET, '10h');
+    
+    const resetToken = createShortToken(user._id, process.env.RESET_SECRET, '10h');
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
 
     user.resetPasswordToken = resetToken;

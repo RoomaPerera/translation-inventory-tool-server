@@ -20,7 +20,7 @@ const translationSchema = new mongoose.Schema({
     product: { type: String, required: true },
     projectId: { type: mongoose.Schema.Types.ObjectId, ref: 'Project', required: true },
     context: { type: String },
-    status: { type: String, enum: ['pending', 'completed', 'approved'], default: 'pending' }, // needs to be approved as well
+    status: { type: String, enum: ['pending', 'approved'], default: 'pending' }, // needs to be approved as well
     createdBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true }, // , required: true added newly
     createdAt: { type: Date, default: Date.now },
     updatedAt: { type: Date, default: Date.now },

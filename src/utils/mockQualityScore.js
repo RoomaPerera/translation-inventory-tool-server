@@ -109,7 +109,7 @@ const mockQualityScore = (input, output, expectedTargetLanguage, detectedTargetL
     console.log(`🏁 Final Score: Good | Marks: 8`);
     return {
       score: "Good",
-      marks: 8,
+      marks: 5,
       checkPassed: true,
       languageMatch: expectedLangCode === detectedLangCode,
       translationMatch: false,
