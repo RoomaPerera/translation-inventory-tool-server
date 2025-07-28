@@ -46,6 +46,7 @@ const userSchema = new Schema({
         type: Number,
         default: 0
     },
+    
     resetPasswordToken: String,
     resetPasswordOtp: String,
     resetPasswordExpires: Date,
@@ -73,6 +74,7 @@ async function hasMaxRecord(email) {
         return false;
     }
 }
+
 
 function getStregthColor(score) {
     switch (score) {
@@ -255,6 +257,18 @@ this.password = await bcrypt.hash(this.password, salt);
 next();
 });
 
+userSchema.statics.findIdAndRole = async function (id) {
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+        throw new Error("Invalid user ID");
+    }
+
+    const user = await this.findById(id).select('_id role');
+    if (!user) {
+        throw new Error("User not found");
+    }
+
+    return user;
+};
 
 // If you have:
 const User = mongoose.model('User', userSchema);

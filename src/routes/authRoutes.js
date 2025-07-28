@@ -45,7 +45,7 @@ router.get('/getLanguages', getLanguages);
 
 router.use(requireAuth);
 //protected routes
-router.post('/changePassword', requireAuth, logActivity('change_password'), changePassword);
+// router.post('/changePassword', requireAuth, logActivity('change_password'), changePassword);
 router.get('/logout', requireAuth, logActivity('logout'), logoutUser);
 router.get('/me', requireAuth, getCurrentUser);
 

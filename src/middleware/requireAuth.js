@@ -2,7 +2,7 @@
 
 const jwt = require('jsonwebtoken');
 const { verifyToken, createToken } = require('../utils/jwt');
-const User = require('../models/User');
+const {User} = require('../models/User');
 
 const INACTIVITY_LIMIT_MS = 15 * 60 * 1000; // 15 minutes
 const SESSION_EXPIRY_MS = 2 * 60 * 60 * 1000; // 2 hours
@@ -46,7 +46,7 @@ const requireAuth = async (req, res, next) => {
         return res.status(401).json({ error: 'Session expired due to inactivity' })
     } */}
     try {
-        const user = await User.findById(payload.id).select('_id role');
+        const user = await User.findIdAndRole(payload.id);
         if (!user) {
             console.log('User not found for payload.id:', payload.id);
             return res.status(401).json({ error: 'User not found' });
@@ -72,5 +72,6 @@ const requireAuth = async (req, res, next) => {
         return res.status(500).json({ error: 'Server error during authentication' });
     }
 }
+
 
 module.exports = requireAuth;
