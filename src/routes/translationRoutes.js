@@ -1,3 +1,5 @@
+//routes/translationRoutes.js
+
 const express = require('express');
 const router = express.Router();
 const revisionRoutes = require('./revisionRoutes'); // Import the sub-router
@@ -8,7 +10,10 @@ const {
     addBulkTranslations,
     updateTranslation,
     getTranslations,
+    approveTranslation ,
+    qualityCheck ,
     deleteTranslation,
+    translationController
 } = require('../controllers/translationController');
 const requireRole = require('../middleware/requireRole');
 
@@ -39,7 +44,7 @@ router.delete('/:id', deleteTranslation);
 // Any request starting with /api/translations/revisions will be passed to revisionRoutes.js
 router.use('/revisions', revisionRoutes);
 
-
+router.post('/quality-check',qualityCheck);
 
 
 module.exports = router;

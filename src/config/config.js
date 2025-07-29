@@ -1,8 +1,11 @@
-// Loads environment variables and exports app configuration
+// config/index.js
 require('dotenv').config();
+const express = require('express');
 
+// Default configuration values
 const DEFAULT_PORT = 5000;
 
+// Required environment variables
 const requireEnvVariables = [
     'MONGO_URI',
     'JWT_SECRET',
@@ -13,6 +16,7 @@ const requireEnvVariables = [
     'FRONTEND_URL'
 ];
 
+// Validate required environment variables
 for (const key of requireEnvVariables) {
     if (!process.env[key]) {
         console.error(`Missing environment variable: ${key}`);
@@ -20,6 +24,7 @@ for (const key of requireEnvVariables) {
     }
 }
 
+// Destructure environment variables
 const {
     PORT: portEnv,
     MONGO_URI: mongoURI,
@@ -31,6 +36,7 @@ const {
     FRONTEND_URL: frontendURL,
 } = process.env;
 
+// Export configuration object
 module.exports = {
     port: Number(portEnv) || DEFAULT_PORT,
     mongoURI,
@@ -42,4 +48,9 @@ module.exports = {
         pass: smtpPass
     },
     frontendURL,
+    // Additional simple exports
+    
+    port: process.env.PORT || 5000,
+    mongoURI: process.env.MONGO_URI,
+    
 };
