@@ -11,13 +11,13 @@ const mongoose = require('mongoose');
 // REQ-16: Add New Project
 const addProject = async (req, res) => {
   try {
-    const { name, description, languages, createdBy, defaultLanguage } = req.body;
+    const { name, description, languages, createdBy, defaultLanguage, csvKeys } = req.body;
 
-        // Check for duplicate project name
-        const existingProject = await Project.findOne({ name: name.trim() });
-        if (existingProject) {
-            return res.status(409).json({ message: 'A project with this name already exists.' });
-        }
+    // Check for duplicate project name
+    const existingProject = await Project.findOne({ name: name.trim() });
+    if (existingProject) {
+      return res.status(409).json({ message: 'A project with this name already exists.' });
+    }
 
     // Flatten languages array if needed and ensure it's an array of strings
     let flattenedLanguages = [];
@@ -62,27 +62,35 @@ const addProject = async (req, res) => {
       languages: flattenedLanguages,
       createdBy,
       defaultLanguage: validatedDefaultLanguage,
+      csvKeys: csvKeys || []
     });
 
     await newProject.save();
+    
     // Send notification to relevant translators
-    await notifyNewProject(newProject);
+    let notificationStatus = 'success';
+    try {
+      await notifyNewProject(newProject);
+    } catch (notificationError) {
+      console.error('Notification error:', notificationError);
+      notificationStatus = 'email_failed';
+    }
     
     // --- UserActivity Log: For anomaly detection ---
     try {
-        await UserActivity.create({
-            user: req.user.id,
-            type: 'project_created',
-            success: true,
-            ip: req.ip,
-            details: { 
-                projectId: newProject._id,
-                projectName: name,
-                languages: flattenedLanguages
-            }
-        });
+      await UserActivity.create({
+        user: req.user.id,
+        type: 'project_created',
+        success: true,
+        ip: req.ip,
+        details: { 
+          projectId: newProject._id,
+          projectName: name,
+          languages: flattenedLanguages
+        }
+      });
     } catch (activityErr) {
-        console.error('UserActivity error (addProject):', activityErr);
+      console.error('UserActivity error (addProject):', activityErr);
     }
     
     // --- Activity Log: User creates project ---
@@ -139,7 +147,6 @@ const addProject = async (req, res) => {
       error: error.message || error,
     });
   }
-
 };
 
 // Get all projects
@@ -208,51 +215,17 @@ const updateProject = async (req, res) => {
 
 // Delete a project
 const deleteProject = async (req, res) => {
-    try {
-        const deleted = await Project.findByIdAndDelete(req.params.id);
-        if (!deleted) return res.status(404).json({ message: 'Project not found' });
-        res.status(200).json({ message: 'Project deleted successfully' });
-    } catch (err) {
-        res.status(500).json({ error: err.message });
-    }
+  try {
+    const deleted = await Project.findByIdAndDelete(req.params.id);
+    if (!deleted) return res.status(404).json({ message: 'Project not found' });
+    res.status(200).json({ message: 'Project deleted successfully' });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
 };
 
 // Assign languages to a specific project
 const assignLanguagesToProject = async (req, res) => {
-    try {
-        const { id } = req.params;
-        const { languages } = req.body;
-        
-        console.log('Assigning languages to project:', id, 'Languages:', languages);
-        
-        // Validate project exists
-        const project = await Project.findById(id);
-        if (!project) {
-            return res.status(404).json({ error: 'Project not found' });
-        }
-
-        // Validate languages array
-        if (!Array.isArray(languages)) {
-            return res.status(400).json({ error: 'Languages must be an array' });
-        }
-
-        // Validate that the languages exist in the Language collection
-        const Language = require('../models/Language');
-        const validLanguages = await Language.find({
-            code: { $in: languages }
-        });
-
-        if (validLanguages.length !== languages.length) {
-            const validCodes = validLanguages.map(lang => lang.code);
-            const invalidCodes = languages.filter(code => !validCodes.includes(code));
-            return res.status(400).json({ 
-                error: `Invalid language codes: ${invalidCodes.join(', ')}` 
-            });
-        }
-
-        // Update project languages
-        project.languages = languages;
-        await project.save();
   try {
     const { languages } = req.body;
     if (!Array.isArray(languages)) {
@@ -262,6 +235,19 @@ const assignLanguagesToProject = async (req, res) => {
     const project = await Project.findById(req.params.id);
     if (!project) return res.status(404).json({ message: 'Project not found' });
 
+    // Validate that the languages exist in the Language collection
+    const validLanguages = await Language.find({
+      code: { $in: languages }
+    });
+
+    if (validLanguages.length !== languages.length) {
+      const validCodes = validLanguages.map(lang => lang.code);
+      const invalidCodes = languages.filter(code => !validCodes.includes(code));
+      return res.status(400).json({ 
+        error: `Invalid language codes: ${invalidCodes.join(', ')}` 
+      });
+    }
+
     // Convert all languages to strings and avoid duplicates
     const stringLanguages = languages.map(lang => String(lang));
     const currentLanguages = project.languages || [];
@@ -270,112 +256,39 @@ const assignLanguagesToProject = async (req, res) => {
     project.languages = [...new Set([...currentLanguages, ...stringLanguages])];
     await project.save();
 
-        // Activity Log
-        try {
-            const userId = req.user?.id;
-            const userRole = req.user?.role;
-            if (userId && userRole) {
-                const user = await User.findById(userId).select('userName');
-                if (user) {
-                    await ActivityLog.create({
-                        userId,
-                        userName: user.userName,
-                        role: userRole.toLowerCase(),
-                        description: `Assigned languages [${languages.join(', ')}] to project: ${project.name}`
-                    });
-                }
-            }
-        } catch (logErr) {
-            console.error('ActivityLog error (assignLanguagesToProject):', logErr);
-        }
-
-        res.status(200).json({ 
-            message: 'Languages assigned successfully',
-            project: {
-                _id: project._id,
-                name: project.name,
-                languages: project.languages
-            }
-        });
-    } catch (error) {
-        console.error('Error assigning languages to project:', error);
-        res.status(500).json({ error: error.message });
-    }
-};
-
-// Get languages for a specific project
-const getProjectLanguages = async (req, res) => {
+    // Activity Log
     try {
-        console.log('Backend: Getting languages for project ID:', req.params.id);
-        const project = await Project.findById(req.params.id);
-        if (!project) {
-            console.log('Backend: Project not found with ID:', req.params.id);
-            return res.status(404).json({ message: 'Project not found' });
+      const userId = req.user?.id;
+      const userRole = req.user?.role;
+      if (userId && userRole) {
+        const user = await User.findById(userId).select('userName');
+        if (user) {
+          await ActivityLog.create({
+            userId,
+            userName: user.userName,
+            role: userRole.toLowerCase(),
+            description: `Assigned languages [${languages.join(', ')}] to project: ${project.name}`
+          });
         }
-
-        console.log('Backend: Found project:', project.name);
-        console.log('Backend: Project languages (raw):', project.languages);
-
-        // If no languages assigned, return empty array
-        if (!project.languages || project.languages.length === 0) {
-            console.log('Backend: No languages assigned to this project');
-            return res.status(200).json({
-                projectId: project._id,
-                projectName: project.name,
-                languages: []
-            });
-        }
-
-        // Import Language model to populate language data
-        const Language = require('../models/Language');
-
-        // Check if the stored values are ObjectIds or language codes/names
-        const mongoose = require('mongoose');
-        let languageObjects = [];
-
-        // Try to determine if we have ObjectIds or language codes
-        const firstLanguage = project.languages[0];
-        console.log('Backend: First language value:', firstLanguage, 'Type:', typeof firstLanguage);
-
-        if (mongoose.Types.ObjectId.isValid(firstLanguage) && firstLanguage.length === 24) {
-            // These look like ObjectIds
-            console.log('Backend: Languages appear to be ObjectIds, searching by _id');
-            languageObjects = await Language.find({
-                '_id': { $in: project.languages }
-            });
-        } else {
-            // These are likely language codes or names
-            console.log('Backend: Languages appear to be codes/names, searching by code and name');
-            languageObjects = await Language.find({
-                $or: [
-                    { 'code': { $in: project.languages } },
-                    { 'name': { $in: project.languages } }
-                ]
-            });
-        }
-
-        console.log('Backend: Found language objects:', languageObjects);
-
-        const response = {
-            projectId: project._id,
-            projectName: project.name,
-            languages: languageObjects
-        };
-
-        console.log('Backend: Sending response:', response);
-        res.status(200).json(response);
-    } catch (err) {
-        console.error('Backend Error fetching project languages:', err);
-        res.status(500).json({ error: err.message });
+      }
+    } catch (logErr) {
+      console.error('ActivityLog error (assignLanguagesToProject):', logErr);
     }
-};
 
-// Return project with populated default language
+    // Return project with populated default language
     const updatedProject = await Project.findById(project._id)
       .populate('createdBy', 'name email')
       .populate('defaultLanguage', 'name code nativeName');
 
-    res.status(200).json(updatedProject);
+    res.status(200).json({ 
+      message: 'Languages assigned successfully',
+      project: updatedProject
+    });
+  } catch (error) {
+    console.error('Error assigning languages to project:', error);
+    res.status(500).json({ error: error.message });
+  }
+};
 
 // Get languages for a specific project
 const getProjectLanguages = async (req, res) => {
