@@ -46,7 +46,7 @@ const userSchema = new Schema({
         type: Number,
         default: 0
     },
-     totalProjectsAssigned: {
+    totalProjectsAssigned: {
         type: Number,
         default: 0
     },
@@ -57,7 +57,7 @@ const userSchema = new Schema({
     lastLoginDate: {
         type: Date
     },
-     translatorStats: {
+    translatorStats: {
         totalTranslationsCompleted: { type: Number, default: 0 },
         totalWordsTranslated: { type: Number, default: 0 },
         averageTranslationQuality: { type: Number, default: 0 },
@@ -78,7 +78,7 @@ const userSchema = new Schema({
         systemUptimeResponsibility: { type: Number, default: 0 },
         totalSystemConfigurations: { type: Number, default: 0 }
     },
-    
+
     resetPasswordToken: String,
     resetPasswordOtp: String,
     resetPasswordExpires: Date,
@@ -209,7 +209,7 @@ userSchema.statics.register = async function (userName, email, password, role, l
     //password strength check
     const emailLocalPart = email.split('@')[0];
     const pwCheck = isStrongPassword(password, emailLocalPart);
-    
+
     if (!pwCheck.valid) {
         throw Error(pwCheck.message || 'Password is not strong enough.')
     }
@@ -228,10 +228,6 @@ userSchema.statics.register = async function (userName, email, password, role, l
         await existing.save();
         return existing;
     }
-
-    //hash password and create user
-    // const salt = await bcrypt.genSalt(10);
-    // const hash = await bcrypt.hash(password, salt);
 
     const newUser = {
         userName, email,
@@ -279,15 +275,15 @@ userSchema.statics.login = async function (email, password) {
 };
 // Compare password method
 userSchema.methods.comparePassword = async function (password) {
-return await bcrypt.compare(password, this.password);
+    return await bcrypt.compare(password, this.password);
 };
 
 // // Password hashing before save
 userSchema.pre('save', async function (next) {
-if (!this.isModified('password')) return next();
-const salt = await bcrypt.genSalt(10);
-this.password = await bcrypt.hash(this.password, salt);
-next();
+    if (!this.isModified('password')) return next();
+    const salt = await bcrypt.genSalt(10);
+    this.password = await bcrypt.hash(this.password, salt);
+    next();
 });
 
 userSchema.statics.findIdAndRole = async function (id) {

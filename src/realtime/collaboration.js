@@ -41,7 +41,7 @@ module.exports = function (io) {
                     return next(new Error('Authentication Error: Token expired'));
                 }
 
-                const User = require('../models/User');
+                const { User } = require('../models/User');
                 const user = await User.findById(id).select('_id role isActive userName');
                 if (!user || !user.isActive) {
                     return next(new Error('Authentication Error: User not found or inactive'));
@@ -93,7 +93,7 @@ module.exports = function (io) {
             console.log('Parsed cookie names:', Object.keys(parsedCookies));
 
             // Try multiple cookie names
-            const token = parsedCookies.token ||
+            let token = parsedCookies.token ||
                 parsedCookies.authToken ||
                 parsedCookies.auth_token ||
                 parsedCookies.jwt ||
@@ -126,7 +126,7 @@ module.exports = function (io) {
             }
 
             // User verification
-            const User = require('../models/User');
+            const { User } = require('../models/User');
             const user = await User.findById(id).select('_id role isActive userName');
             if (!user) {
                 console.log('User not found in database:', id);
