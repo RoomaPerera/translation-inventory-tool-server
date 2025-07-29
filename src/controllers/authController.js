@@ -88,13 +88,12 @@ const loginUser = async (req, res) => {
         await user.save();
         const token = createToken({ id: user._id, role: user.role });
 
-        // THE FIX IS HERE: We now return the full user object
         const userData = {
-            _id: user._id,       // Needed for API calls like assigning languages
-            userName: user.userName, // For the sidebar
+            _id: user._id,
+            userName: user.userName,
             email: user.email,
-            role: user.role,       // For the sidebar
-            languages: user.languages || [], // For the language modal
+            role: user.role,
+            languages: user.languages || [],
             lastLogin: user.lastLogin,
             isActive: user.isActive,
         };
@@ -138,7 +137,6 @@ const loginUser = async (req, res) => {
  */
 const getCurrentUser = async (req, res) => {
     try {
-        // req.user is set by requireAuth middleware
         if (!req.user) {
             return res.status(401).json({ error: 'Not authenticated' });
         }
@@ -151,10 +149,10 @@ const getCurrentUser = async (req, res) => {
         res.status(200).json({
             user: {
                 id: user._id,
+                _id: user._id,
                 email: user.email,
                 userName: user.userName,
                 role: user.role,
-                // Include any other user fields you need on the frontend
                 languages: user.languages
             }
         });
@@ -278,7 +276,7 @@ const logoutUser = async (req, res) => {
         clearCookie('token', {
             httpOnly: true,
             secure: process.env.NODE_ENV == 'production',
-            sameSite: 'Strict',
+            sameSite: 'Lax',
             path: '/'
         }).json({ message: 'Logged out successfully' });
 }
