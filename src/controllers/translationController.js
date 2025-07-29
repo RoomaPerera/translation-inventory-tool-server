@@ -26,9 +26,10 @@ exports.addTranslation = async (req, res, next) => {
         });
         await newTranslation.save();
 
-
-        // Send notification to relevant translators
-        await notifyNewTranslation({ language: normalizedLanguage, text: translatedText });
+        // Send notification to relevant translators only if there's actual text
+        if (translatedText && translatedText.trim() !== '') {
+            await notifyNewTranslation({ language: normalizedLanguage, text: translatedText });
+        }
         
         // --- UserActivity Log: For anomaly detection ---
         try {
@@ -106,12 +107,13 @@ exports.addBulkTranslations = async (req, res, next) => {
         const createdTranslations = await Translation.insertMany(translationDocs);
 
         // Send notifications in batch (non-blocking)
-        const notificationPromises = translations.map(translationData => 
-            notifyNewTranslation({ 
-                language: translationData.language, 
-                text: translationData.translatedText || '' 
-            }).catch(err => console.error('Notification error:', err))
-        );
+        const notificationPromises = translations
+            .map(translationData => 
+                notifyNewTranslation({ 
+                    language: translationData.language, 
+                    text: translationData.translatedText 
+                }).catch(err => console.error('Notification error:', err))
+            );
         
         // Don't wait for notifications to complete
         Promise.allSettled(notificationPromises);
