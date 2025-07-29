@@ -1,5 +1,5 @@
 require('dotenv').config();
-require('./cron');
+require('./cron'); // your cron jobs
 
 const express = require('express');
 const http = require('http');
@@ -8,6 +8,7 @@ const WebSocket = require('ws');
 
 const connectDB = require('./src/config/db');
 const { port } = require('./src/config/config');
+
 const app = require('./src/app');
 
 const server = http.createServer(app);

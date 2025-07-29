@@ -1,14 +1,19 @@
-// translationRoutes.js - FIXED VERSION
+//routes/translationRoutes.js
+
 const express = require('express');
 const router = express.Router();
 
 const {
     addTranslation,
+    addBulkTranslations,
     updateTranslation,
     getTranslations,
+    approveTranslation,
+    qualityCheck,
     deleteTranslation,
+    translationController
 } = require('../controllers/translationController');
-
+const requireRole = require('../middleware/requireRole');
 // Import revision controller functions
 const {
     getRevisions,
@@ -27,6 +32,10 @@ router.get('/', getTranslations);
 // Handles POST /api/translations
 router.post('/', addTranslation);
 
+// POST multiple translations at once (bulk creation)
+// Handles POST /api/translations/bulk
+router.post('/bulk', addBulkTranslations);
+
 // PUT an update to a translation's text or status. This also handles revisions.
 // Handles PUT /api/translations/:id
 router.put('/:id', updateTranslation);
@@ -44,7 +53,7 @@ router.get('/:id/diff/:revIndex', getDiff);
 
 // POST /api/translations/:id/revert/:revIndex
 router.post('/:id/revert/:revIndex', revertRevision);
-
+router.post('/quality-check', qualityCheck);
 // GET /api/translations/:id/history - Complete history including current version
 router.get('/:id/history', getCompleteHistory);
 

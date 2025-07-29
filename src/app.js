@@ -6,7 +6,8 @@ const errorHandler = require('./middleware/errorMiddleware');
 const requireAuth = require('./middleware/requireAuth');
 const logger = require('./middleware/logger');
 const Scheduler = require('./utils/scheduler');
-
+const mongoose = require('mongoose');
+const morgan = require('morgan');
 // Import models to register schemas
 require('./models/User');
 require('./models/UserActivity');
@@ -16,14 +17,19 @@ require('./models/Anomaly');
 const authRoutes = require('./routes/authRoutes');
 const userRoutes = require('./routes/userRoutes');
 const projectRoutes = require('./routes/projectRoutes');
+const languageRoutes = require('./routes/languageRoutes');
 const adminRoutes = require('./routes/adminRoutes');
 const developerRoutes = require('./routes/developerRoutes');
 const translationRoutes = require('./routes/translationRoutes');
+const revisionRoutes = require('./routes/revisionRoutes');
+const analyticsRoutes = require('./routes/analyticsRoutes');
 const fuzzyRoutes = require('./routes/fuzzyRoutes');
 const activityLogRoutes = require('./routes/activityLogRoutes');
 const anomalyRoutes = require('./routes/anomalies');
-const languageRoutes = require('./routes/languageRoutes');
 const nlpRoutes = require('./routes/nlpRoutes');
+const translationValidationRoutes = require('./routes/translationValidationRoutes');
+
+
 
 // Express app initialization
 const app = express();
@@ -47,9 +53,22 @@ app.use(cors({
 app.options('*', cors());
 app.use(express.json());
 app.use(cookieParser());
-app.use(logger); // Log all requests
+app.use(express.urlencoded({ extended: true }));
+app.use(morgan('dev'));
 
-// --- API Routes ---
+app.use(logger);
+
+app.use('/api/activitylogs', require('./routes/activityLogRoutes'));
+
+app.get('/api/test', (req, res) => {
+    res.json({
+        message: 'API is working',
+        timestamp: new Date().toISOString(),
+        environment: process.env.NODE_ENV || 'development',
+    });
+});
+
+// Use routes with authentication where required
 app.use('/api/auth', authRoutes);
 app.use('/api/users', requireAuth, userRoutes);
 app.use('/api/translations', requireAuth, translationRoutes);
@@ -60,7 +79,10 @@ app.use('/api/admin', requireAuth, adminRoutes);
 app.use('/api/developer', requireAuth, developerRoutes);
 app.use('/api/activitylogs', requireAuth, activityLogRoutes);
 app.use('/api/anomalies', requireAuth, anomalyRoutes);
-app.use('/api', requireAuth, fuzzyRoutes);
+app.use('/api/translations/revisions', requireAuth, revisionRoutes);
+app.use('/api/fuzzy-search', requireAuth, fuzzyRoutes);
+app.use('/api/analytics', requireAuth, analyticsRoutes);
+app.use('/api/tools', translationValidationRoutes);
 
 // Start anomaly detection scheduler
 Scheduler.start();
@@ -69,3 +91,4 @@ Scheduler.start();
 app.use(errorHandler);
 
 module.exports = app;
+
