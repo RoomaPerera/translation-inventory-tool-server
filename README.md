@@ -162,25 +162,34 @@ Designed for **scalability**, **security**, and **extensibility**, this backend 
    git clone https://github.com/RoomaPerera/translation-inventory-tool-server.git
    cd translation-inventory-tool-server
 
-2. Install dependencies
-npm install
+2. **Install dependencies**
+   ```bash
+   npm install
 
-3. Create a .env file in the project root with the following variables:
+3. **Create a .env file in the project root with the following variables:**
+   ```bash
+   PORT=5000
+   MONGO_URI=<YOUR_MONGODB_CONNECTION_STRING>
+   SECRET=<RANDOM_SECRET_FOR_APP_ENCRYPTION>
+   JWT_SECRET=<YOUR_JWT_SECRET_KEY>
+   SMTP_HOST=<YOUR_SMTP_HOST>
+   SMTP_PORT=<YOUR_SMTP_PORT>
+   SMTP_USER=<YOUR_SMTP_USERNAME>
+   SMTP_PASS=<YOUR_SMTP_PASSWORD>
+   FROM_EMAIL=<EMAIL_ADDRESS_FOR_SENDING_NOTIFICATIONS>
+   FRONTEND_URL=http://localhost:5173
 
-PORT=5000
-MONGO_URI=mongodb+srv://codecore07:codecore123@translationinventorytoo.i0gjwk7.mongodb.net/?retryWrites=true&w=majority&appName=TranslationInventoryTool
-SECRET=16af48700f6b1f0ff83694bcf234ef03754e18749202910a4d079053c5f822e1
-JWT_SECRET=supersecretkey123
-SMTP_HOST=sandbox.smtp.mailtrap.io
-SMTP_PORT=2525
-SMTP_USER=your_mailtrap_username
-SMTP_PASS=your_mailtrap_password
-FROM_EMAIL=no-reply@example.com
-FRONTEND_URL=http://localhost:5173
-
-4. Start the development server
-npm run dev
-python app.py
+5. **Start the development server**
+   - **Backend**
+     -Navigate to the project root and run:
+     ```bash
+     npm run dev
+   - **NLP Microservice**
+     In a separate terminal, navigate to the `src/nlp_service` folder and run:  
+     ```bash
+     cd src/nlp_service
+     python app.py
+     ```
 
 ### API Endpoints
 

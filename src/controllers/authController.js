@@ -79,38 +79,6 @@ const registerUser = async (req, res) => {
     }
 };
 
-/**
- * @route   POST /api/auth/login
- * @desc    Authenticate user and return JWT
- */
-// const loginUser = async (req, res) => {
-//   console.log('Login request body:', req.body);  // log input
-//   const { email, password } = req.body;
-
-//   if (!email || !password) {
-//     return res.status(400).json({ error: 'Email and password are required' });
-//   }
-
-//   try {
-//     const user = await User.login(email, password);
-//     const token = createToken(user._id,process.env.SECRET, '1h');
-
-//     res.cookie('token', token, {
-//       httpOnly: true,
-//       secure: process.env.NODE_ENV === 'production',
-//       sameSite: 'Strict',
-//       maxAge: 2 * 60 * 60 * 1000,
-//     }).status(200).json({
-//       email: user.email,
-//       userName: user.userName,
-//       role: user.role,
-//       token
-//     });
-//   } catch (error) {
-//     console.error('Login error:', error);
-//     res.status(400).json({ error: error.message });
-//   }
-// };
 const loginUser = async (req, res) => {
     const { email, password } = req.body;
     // --- IP BLOCK CHECK ---
@@ -220,115 +188,6 @@ const getCurrentUser = async (req, res) => {
         res.status(500).json({ error: 'Server error' });
     }
 };
-
-/**
- * @route   POST /api/auth/resetPassword
- * @desc    Send short-lived reset link email - Forgot Password
- */
-// const resetPassword = async (req, res) => {
-//     const { email } = req.body;
-//     const user = await User.findOne({ email });
-//     if (!user) {
-//         return res.status(404).json({ error: 'No account with that email' });
-//     }
-
-//     const resetToken = createShortToken({
-//         id: user._id.toString(),
-//         role: user.role,
-//         version: user.resetTokenVersion
-//     });
-//     const resetURL = `${frontendURL}/reset-password?token=${resetToken}`;
-
-//     const html = resetPasswordTemplate({
-//         userName: user.userName,
-//         resetURL,
-//         expiryMinutes: PASSWORD_RESET_EXPIRY_MINUTES
-//     });
-
-//     await sendMail({
-//         to: user.email,
-//         subject: 'Password Reset Link',
-//         html,
-//     });
-//     res.json({ message: MSG_PASSWORD_RESET_SENT });
-// };
-
-/**
- * @route   POST /api/auth/setNewPassword
- * @desc    Verify reset token and update password - Forgot Password
- */
-// const setNewPassword = async (req, res) => {
-//     const { token, newPassword, confirmPassword } = req.body;
-//     if (newPassword != confirmPassword) {
-//         return res.status(400).json({ error: 'Passwords do not match.' });
-//     }
-//     try {
-//         const payload = verifyToken(token);
-//         const user = await User.findById(payload.id);
-//         if (!user) throw Error('Invalid token or user');
-
-//         //one time use check
-//         if (payload.version !== user.resetTokenVersion) {
-//             throw Error('This reset link has already been used.');
-//         }
-
-//         //strength check
-//         const emailLocal = user.email.split('@')[0];
-//         const pwCheck = isStrongPassword(newPassword, emailLocal);
-//         if (!pwCheck.valid) {
-//             return res.status(400).json({ error: pwCheck.message });
-//         }
-
-//         //hash and save
-//         const salt = await bcrypt.genSalt(10);
-//         user.password = await bcrypt.hash(newPassword, salt);
-//         user.resetTokenVersion += 1;
-//         await user.save();
-
-//         res.json({ message: 'Password has been reset' });
-//     } catch (error) {
-//         if (error.name === 'TokenExpiredError') {
-//             return res.status(400).json({ error: 'Reset link has expired. Please request a new one.' })
-//         }
-//         if (error.name === 'JsonWebTokenError') {
-//             return res.status(400).json({ error: 'Invalid reset link. Please request a new one.' })
-//         }
-//         return res.status(400).json({ error: error.message });
-//     }
-// };
-
-/**
- * @route   POST /api/auth/changePassword
- * @desc    Change password for logged-in users
- */
-// const changePassword = async (req, res) => {
-//     const { oldPassword, newPassword, confirmPassword } = req.body;
-//     const user = await User.findById(req.user.id);
-//     if (!user) {
-//         return res.status(404).json({ error: 'User not found' });
-//     }
-
-//     const match = await bcrypt.compare(oldPassword, user.password);
-//     if (!match) {
-//         return res.status(400).json({ error: 'Old password incorrect' });
-//     }
-
-//     if (newPassword !== confirmPassword) {
-//         return res.status(400).json({ error: 'Passwords do not match.' });
-//     }
-
-//     //strength check
-//     const emailLocal = user.email.split('@')[0];
-//     const pwCheck = isStrongPassword(newPassword, emailLocal);
-//     if (!pwCheck.valid) {
-//         return res.status(400).json({ error: pwCheck.message });
-//     }
-
-//     const salt = await bcrypt.genSalt(10);
-//     user.password = await bcrypt.hash(newPassword, salt);
-//     await user.save();
-//     res.json({ message: MSG_PASSWORD_CHANGED });
-// };
 
 // Forgot Password: Send OTP and resetToken via email
 const forgotPassword = async (req, res) => {
@@ -508,9 +367,6 @@ const getLanguages = async (req, res) => {
 module.exports = {
     registerUser,
     loginUser,
-    // resetPassword,
-    // setNewPassword,
-    // changePassword,
     forgotPassword,
     verifyOtp,
     resetPasswordWithToken,

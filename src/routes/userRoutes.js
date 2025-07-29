@@ -17,11 +17,10 @@ const requireRole = require('../middleware/requireRole');
 
 router.use(requireAuth);
 const adminRouter = express.Router();
+router.use('/', requireRole('Admin'), adminRouter);
 
 
-
-router.put('/modifyLanguages/:id', modifyLanguages);
-
+adminRouter.put('/modifyLanguages/:id', modifyLanguages);
 adminRouter.put('/:id/approve', approveUser);
 adminRouter.delete('/deleteUser/:id', deleteUser);
 adminRouter.get('/getUserList', getUserList);
@@ -29,8 +28,8 @@ adminRouter.get('/filterUserList/:role', filterUserList);
 adminRouter.delete('/deleteRejectedUsers', deleteRejectedUsers);
 adminRouter.get('/getPendingUsers', getPendingUsers);
 adminRouter.put('/:id/reject', rejectUser);
-router.get('/getUser/:id', getUser);
 
-router.use('/', requireRole('Admin'), adminRouter);
+
+router.get('/getUser/:id', getUser);
 
 module.exports = router;

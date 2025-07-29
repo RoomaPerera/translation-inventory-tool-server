@@ -53,7 +53,9 @@ router.get('/:id/diff/:revIndex', getDiff);
 
 // POST /api/translations/:id/revert/:revIndex
 router.post('/:id/revert/:revIndex', revertRevision);
+
 router.post('/quality-check', qualityCheck);
+
 // GET /api/translations/:id/history - Complete history including current version
 router.get('/:id/history', getCompleteHistory);
 
