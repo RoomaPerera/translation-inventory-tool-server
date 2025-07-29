@@ -17,10 +17,10 @@ try {
                 user: smtp.user,
                 pass: smtp.pass
             },
-            // Add timeout settings for better reliability
-            connectionTimeout: 60000, // 60 seconds
-            greetingTimeout: 30000,   // 30 seconds
-            socketTimeout: 60000,     // 60 seconds
+            // Extended timeout settings for better reliability with multiple emails
+            connectionTimeout: 120000, // 120 seconds (2 minutes)
+            greetingTimeout: 60000,    // 60 seconds
+            socketTimeout: 120000,     // 120 seconds (2 minutes)
         });
         
         console.log('Email transporter configured successfully');
