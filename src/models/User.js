@@ -177,6 +177,7 @@ userSchema.statics.register = async function (userName, email, password, role, l
     //password strength check
     const emailLocalPart = email.split('@')[0];
     const pwCheck = isStrongPassword(password, emailLocalPart);
+    
     if (!pwCheck.valid) {
         throw Error(pwCheck.message || 'Password is not strong enough.')
     }

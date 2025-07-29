@@ -340,7 +340,7 @@ try {
 
     user.resetPasswordToken = resetToken;
     user.resetPasswordOtp = otp;
-    user.resetPasswordExpires = Date.now() + 10 * 60 * 1000; // 10 minutes
+    user.resetPasswordExpires = Date.now() + 600 * 1000; // 10 minutes 
     await user.save({ validateBeforeSave: false });
 
     const transporter = nodemailer.createTransport({
@@ -384,7 +384,9 @@ try {
 };
 const resetPasswordWithToken = async (req, res) => {
 const { otp, newPassword, confirmPassword, token } = req.body;
+
 try {
+    
     if (!token || !otp || !newPassword || !confirmPassword) {
     throw new Error('All fields are required.');
     }
@@ -403,6 +405,13 @@ try {
     user.resetPasswordToken = null;
     user.resetPasswordOtp = null;
     user.resetPasswordExpires = null;
+
+    // Check password strength
+    const emailLocalPart = user.email.split('@')[0];
+    const pwCheck = isStrongPassword(newPassword, emailLocalPart);
+    if (!pwCheck.valid) {
+    throw new Error(pwCheck.message || 'Password is not strong enough.');
+    }
 
     await user.save();
 
@@ -428,6 +437,12 @@ try {
 
     const isMatch = await user.comparePassword(oldPassword);
     if (!isMatch) throw new Error('Incorrect old password.');
+
+    const emailLocalPart = email.split('@')[0];
+    const pwCheck = isStrongPassword(newPassword, emailLocalPart);
+    if (!pwCheck.valid) {
+    throw new Error(pwCheck.message || 'Password is not strong enough.');
+    }
 
     user.password = newPassword; 
     await user.save();
