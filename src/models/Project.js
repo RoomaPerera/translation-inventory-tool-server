@@ -78,12 +78,12 @@ const projectSchema = new mongoose.Schema({
     },
 });
 
-// Optional: Add a virtual to check if default language is set
+// a virtual to check if default language is set
 projectSchema.virtual('hasDefaultLanguage').get(function() {
     return this.defaultLanguage != null;
 });
 
-// Optional: Add validation middleware to ensure defaultLanguage exists in languages array
+// validation middleware to ensure defaultLanguage exists in languages array
 projectSchema.pre('save', async function(next) {
     if (this.defaultLanguage && this.languages && this.languages.length > 0) {
         // We need to populate the defaultLanguage to get its code/name for comparison
@@ -106,7 +106,6 @@ projectSchema.pre('save', async function(next) {
                 }
             } catch (error) {
                 console.warn('Could not validate default language:', error.message);
-                // Continue without failing - validation will happen in controller
             }
         }
     }
