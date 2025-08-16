@@ -3,6 +3,7 @@ const mongoose = require('mongoose');
 const bcrypt = require('bcrypt');
 const dns = require('dns').promises;
 const zxcvbn = require('zxcvbn');
+const validator = require('validator');
 const Schema = mongoose.Schema
 
 const userSchema = new Schema({
@@ -45,7 +46,7 @@ const userSchema = new Schema({
         type: Number,
         default: 0
     },
-     totalProjectsAssigned: {
+    totalProjectsAssigned: {
         type: Number,
         default: 0
     },
@@ -56,7 +57,7 @@ const userSchema = new Schema({
     lastLoginDate: {
         type: Date
     },
-     translatorStats: {
+    translatorStats: {
         totalTranslationsCompleted: { type: Number, default: 0 },
         totalWordsTranslated: { type: Number, default: 0 },
         averageTranslationQuality: { type: Number, default: 0 },
@@ -76,7 +77,11 @@ const userSchema = new Schema({
         totalUsersManaged: { type: Number, default: 0 },
         systemUptimeResponsibility: { type: Number, default: 0 },
         totalSystemConfigurations: { type: Number, default: 0 }
-    }
+    },
+
+    resetPasswordToken: String,
+    resetPasswordOtp: String,
+    resetPasswordExpires: Date,
 }, { timestamps: true })
 
 function isValidEmail(email) {
@@ -101,6 +106,7 @@ async function hasMaxRecord(email) {
         return false;
     }
 }
+
 
 function getStregthColor(score) {
     switch (score) {
@@ -203,6 +209,7 @@ userSchema.statics.register = async function (userName, email, password, role, l
     //password strength check
     const emailLocalPart = email.split('@')[0];
     const pwCheck = isStrongPassword(password, emailLocalPart);
+
     if (!pwCheck.valid) {
         throw Error(pwCheck.message || 'Password is not strong enough.')
     }
@@ -222,13 +229,9 @@ userSchema.statics.register = async function (userName, email, password, role, l
         return existing;
     }
 
-    //hash password and create user
-    const salt = await bcrypt.genSalt(10);
-    const hash = await bcrypt.hash(password, salt);
-
     const newUser = {
         userName, email,
-        password: hash,
+        password: password,
         role,
         roleStatus: "Pending"
     };
@@ -270,6 +273,34 @@ userSchema.statics.login = async function (email, password) {
     }
     return user;
 };
+// Compare password method
+userSchema.methods.comparePassword = async function (password) {
+    return await bcrypt.compare(password, this.password);
+};
 
-module.exports = mongoose.model('User', userSchema);
-module.exports.isStrongPassword = isStrongPassword;
+// // Password hashing before save
+userSchema.pre('save', async function (next) {
+    if (!this.isModified('password')) return next();
+    const salt = await bcrypt.genSalt(10);
+    this.password = await bcrypt.hash(this.password, salt);
+    next();
+});
+
+userSchema.statics.findIdAndRole = async function (id) {
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+        throw new Error("Invalid user ID");
+    }
+
+    const user = await this.findById(id).select('_id role');
+    if (!user) {
+        throw new Error("User not found");
+    }
+
+    return user;
+};
+
+// If you have:
+const User = mongoose.model('User', userSchema);
+
+module.exports = { User, isStrongPassword };
+

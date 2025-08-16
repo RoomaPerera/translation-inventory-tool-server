@@ -1,8 +1,8 @@
 const express = require('express');
 const router = express.Router();
 const {
-  suggestTranslations,
-  extractGlossary
+    suggestTranslations,
+    extractGlossary
 } = require('../controllers/nlpController');
 
 router.post('/suggest', suggestTranslations);

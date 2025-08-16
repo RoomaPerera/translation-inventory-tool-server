@@ -1,5 +1,5 @@
 // Admin level user management: approval, language updates, deletion, listing
-const User = require('../models/User');
+const { User } = require('../models/User');
 const UserActivity = require('../models/UserActivity');
 const mongoose = require('mongoose');
 const { getAllowedLanguageCodes } = require('../utils/languageHelper')
@@ -18,7 +18,8 @@ const ROLE_STATUS = {
 
 // Approve or reject a user
 const approveUser = async (req, res) => {
-    const { id, approve } = req.body;
+    const { id } = req.params;
+    const { approve } = req.body;
     if (!mongoose.Types.ObjectId.isValid(id)) {
         return res.status(400).json({ error: 'Invalid User ID' });
     };
@@ -39,7 +40,7 @@ const approveUser = async (req, res) => {
     user.roleStatus = approve ? ROLE_STATUS.APPROVED : ROLE_STATUS.REJECTED;
     user.deletedAt = approve ? null : new Date();
     await user.save();
-    
+
     // --- UserActivity Log: For anomaly detection ---
     try {
         await UserActivity.create({
@@ -47,7 +48,7 @@ const approveUser = async (req, res) => {
             type: approve ? 'user_approved' : 'user_rejected',
             success: true,
             ip: req.ip,
-            details: { 
+            details: {
                 targetUserId: id,
                 targetUserEmail: user.email,
                 action: approve ? 'approved' : 'rejected'
@@ -56,7 +57,7 @@ const approveUser = async (req, res) => {
     } catch (activityErr) {
         console.error('UserActivity error (approveUser):', activityErr);
     }
-    
+
     if (approve) {
         await sendMail({
             to: user.email,
@@ -76,6 +77,12 @@ const approveUser = async (req, res) => {
         action: approve ? ROLE_STATUS.APPROVED : ROLE_STATUS.REJECTED
     })
     res.status(200).json({ message: `User ${approve ? ROLE_STATUS.APPROVED : ROLE_STATUS.REJECTED}` });
+};
+
+// Reject a pending user registration
+const rejectUser = async (req, res) => {
+    req.body.approve = false;
+    return approveUser(req, res);
 };
 
 // Permanently delete all rejected users
@@ -179,6 +186,28 @@ const getPendingUsers = async (req, res) => {
     res.json(users);
 }
 
+const getUser = async (req, res) => {
+    const { id } = req.params;
+
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+        return res.status(400).json({ error: 'Invalid User ID' });
+    }
+
+    try {
+        const user = await User.findById(id)
+            .select('_id userName email role languages isActive')
+            .lean();
+
+        if (!user) {
+            return res.status(404).json({ error: 'User not found' });
+        }
+
+        res.status(200).json({ user });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+};
+
 module.exports = {
     approveUser,
     deleteRejectedUsers,
@@ -186,5 +215,7 @@ module.exports = {
     deleteUser,
     getUserList,
     filterUserList,
-    getPendingUsers
+    getPendingUsers,
+    rejectUser,
+    getUser
 };

@@ -25,4 +25,4 @@ const editLogSchema = new mongoose.Schema({
     }
 });
 
-module.exports = mongoose.model('editLog', editLogSchema)
+module.exports = mongoose.model('EditLog', editLogSchema)

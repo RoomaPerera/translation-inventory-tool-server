@@ -1,10 +1,14 @@
+// controllers/translationController.js
+
 const Translation = require('../models/Translation');
 const { notifyNewTranslation } = require('../utils/notificationService');
-const ActivityLog = require('../models/ActivityLog');
 const UserActivity = require('../models/UserActivity');
 const User = require('../models/User');
+const TranslationCheckResult = require('../models/TranslationCheckResult');
+const mockQualityScore = require('../utils/mockQualityScore'); // ✅ added
+const  detectLanguageSimple = require('../utils/detectLanguagecolls'); // ✅ added
+// ----------------- CRUD CONTROLLERS ---------------------
 
-// Add a Translation
 exports.addTranslation = async (req, res, next) => {
     try {
         const { translationKey, language, translatedText, product, projectId, context } = req.body;
@@ -26,9 +30,10 @@ exports.addTranslation = async (req, res, next) => {
         });
         await newTranslation.save();
 
-
-        // Send notification to relevant translators
-        await notifyNewTranslation({ language: normalizedLanguage, text: translatedText });
+        // Send notification to relevant translators only if there's actual text
+        if (translatedText && translatedText.trim() !== '') {
+            await notifyNewTranslation({ language: normalizedLanguage, text: translatedText });
+        }
         
         // --- UserActivity Log: For anomaly detection ---
         try {
@@ -69,6 +74,7 @@ exports.addTranslation = async (req, res, next) => {
 
         res.status(201).json(newTranslation);
     } catch (error) {
+        console.error(error);
         next(error);
     }
 };
@@ -106,12 +112,13 @@ exports.addBulkTranslations = async (req, res, next) => {
         const createdTranslations = await Translation.insertMany(translationDocs);
 
         // Send notifications in batch (non-blocking)
-        const notificationPromises = translations.map(translationData => 
-            notifyNewTranslation({ 
-                language: translationData.language, 
-                text: translationData.translatedText || '' 
-            }).catch(err => console.error('Notification error:', err))
-        );
+        const notificationPromises = translations
+            .map(translationData => 
+                notifyNewTranslation({ 
+                    language: translationData.language, 
+                    text: translationData.translatedText 
+                }).catch(err => console.error('Notification error:', err))
+            );
         
         // Don't wait for notifications to complete
         Promise.allSettled(notificationPromises);
@@ -213,6 +220,9 @@ exports.updateTranslation = async (req, res, next) => {
     }
 };
 
+exports.editTranslationText = async (req, res, next) => {
+};
+
 // Fetch Translations with Filtering and Pagination
 exports.getTranslations = async (req, res, next) => {
     try {
@@ -266,6 +276,54 @@ exports.deleteTranslation = async (req, res, next) => {
         }
         res.status(200).json({ message: 'Translation deleted successfully', id: id });
     } catch (error) {
+        next(error);
+    }
+};
+exports.qualityCheck = async (req, res, next) => {
+    try {
+        const { inputText, translatedText, expectedTargetLanguage } = req.body;
+
+        if (!inputText || !translatedText || !expectedTargetLanguage) {
+            return res.status(400).json({ error: "inputText, translatedText and expectedTargetLanguage are required" });
+        }
+
+        const detectedSourceLanguage = detectLanguageSimple(inputText);
+        const detectedTargetLanguage = detectLanguageSimple(translatedText);
+
+        const { score, marks, checkPassed } = mockQualityScore(
+            inputText,
+            translatedText,
+            expectedTargetLanguage,
+            detectedTargetLanguage
+        );
+
+        let languageMatch = detectedTargetLanguage === expectedTargetLanguage;
+        if (marks > 5) {
+            languageMatch = true;
+        }
+
+        const result = new TranslationCheckResult({
+            inputText,
+            translatedText,
+            detectedSourceLanguage,
+            detectedTargetLanguage,
+            languageMatch,
+            score,
+            marks,
+            checkPassed
+        });
+
+        await result.save();
+
+        res.json({
+            detectedTargetLanguage,
+            languageMatch,
+            score,
+            marks,
+            checkPassed
+        });
+    } catch (error) {
+        console.error(error);
         next(error);
     }
 };

@@ -1,16 +1,26 @@
+//routes/translationRoutes.js
+
 const express = require('express');
 const router = express.Router();
-const revisionRoutes = require('./revisionRoutes'); // Import the sub-router
 
-// Import all necessary translation controller functions
 const {
     addTranslation,
     addBulkTranslations,
     updateTranslation,
     getTranslations,
+    approveTranslation,
+    qualityCheck,
     deleteTranslation,
+    translationController
 } = require('../controllers/translationController');
 const requireRole = require('../middleware/requireRole');
+// Import revision controller functions
+const {
+    getRevisions,
+    getDiff,
+    revertRevision,
+    getCompleteHistory
+} = require('../controllers/revisionController');
 
 // === Main Translation CRUD Routes ===
 
@@ -34,12 +44,19 @@ router.put('/:id', updateTranslation);
 // Handles DELETE /api/translations/:id
 router.delete('/:id', deleteTranslation);
 
+// === Revision Routes ===
+// GET /api/translations/:id/revisions
+router.get('/:id/revisions', getRevisions);
 
-// === Sub-Router for Revisions ===
-// Any request starting with /api/translations/revisions will be passed to revisionRoutes.js
-router.use('/revisions', revisionRoutes);
+// GET /api/translations/:id/diff/:revIndex  
+router.get('/:id/diff/:revIndex', getDiff);
 
+// POST /api/translations/:id/revert/:revIndex
+router.post('/:id/revert/:revIndex', revertRevision);
 
+router.post('/quality-check', qualityCheck);
 
+// GET /api/translations/:id/history - Complete history including current version
+router.get('/:id/history', getCompleteHistory);
 
 module.exports = router;

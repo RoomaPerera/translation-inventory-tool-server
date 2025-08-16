@@ -3,12 +3,17 @@ const router = express.Router();
 const {
     registerUser,
     loginUser,
-    resetPassword,
-    changePassword,
-    setNewPassword,
+    forgotPassword,
+    verifyOtp,
+    resetPasswordWithToken,
+    deleteAccount, // Uncomment if you have this route
+    // resetPassword,
+    // changePassword,
+    // setNewPassword,
     logoutUser,
     getLanguages,
-    getCurrentUser
+    getCurrentUser,
+    resetPassword
 } = require('../controllers/authController');
 const requireAuth = require('../middleware/requireAuth');
 const rateLimit = require('express-rate-limit');
@@ -28,14 +33,20 @@ const resetLimiter = rateLimit({
 //public routes
 router.post('/register', logActivity('register'), registerUser);
 router.post('/login', loginLimiter, loginUser);
-router.post('/resetPassword', resetLimiter, logActivity('reset_password'), resetPassword);
-router.post('/setNewPassword', logActivity('set_new_password'), setNewPassword);
+router.post('/forgotPassword', forgotPassword);
+router.post('/verifyOtp', verifyOtp);
+router.post('/resetPasswordWithToken', resetPasswordWithToken);
+router.post('/deleteAccount', deleteAccount); 
+router.post('/resetPassword',resetPassword); // Uncomment if you have this route
+// Uncomment if you have this route
+// router.post('/resetPassword', resetLimiter, logActivity('reset_password'), resetPassword);
+// router.post('/setNewPassword', logActivity('set_new_password'), setNewPassword);
 router.get('/getLanguages', getLanguages);
 
 router.use(requireAuth);
 router.use(requireAuth);
 //protected routes
-router.post('/changePassword', requireAuth, logActivity('change_password'), changePassword);
+// router.post('/changePassword', requireAuth, logActivity('change_password'), changePassword);
 router.get('/logout', requireAuth, logActivity('logout'), logoutUser);
 router.get('/me', requireAuth, getCurrentUser);
 
