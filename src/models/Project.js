@@ -86,7 +86,7 @@ projectSchema.virtual('hasDefaultLanguage').get(function() {
 // validation middleware to ensure defaultLanguage exists in languages array
 projectSchema.pre('save', async function(next) {
     if (this.defaultLanguage && this.languages && this.languages.length > 0) {
-        // We need to populate the defaultLanguage to get its code/name for comparison
+        // populate the defaultLanguage to get its code/name for comparison
         if (this.isModified('defaultLanguage') || this.isModified('languages')) {
             try {
                 const Language = mongoose.model('Language');
