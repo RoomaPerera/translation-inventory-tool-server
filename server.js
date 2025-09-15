@@ -1,36 +1,70 @@
-const express = require('express')
-const cors = require('cors')
+// server.js
 
-const connectDB = require('./config/db');
-const { port } = require('./config');
+require('dotenv').config();
 
-const auth = require('./routes/authRoutes')
-const userRoutes = require('./routes/userRoutes')
+const express = require('express');
+const cors = require('cors');
+const morgan = require('morgan');
+const connectDB = require('./src/config/db');
 
-//express app
-const app = express()
+// Import routes
+const authRoutes = require('./src/routes/authRoutes');
+const userRoutes = require('./src/routes/userRoutes');
+const translationRoutes = require('./src/routes/translationRoutes');
+const translationValidationRoutes = require('./src/routes/translationValidationRoutes');
 
-//middleware
-app.use(cors());
-app.use(express.json())
-app.use((req, res, next) => {
-    console.log(req.path, req.method)
-    next()
-})
+// Import error handler middleware
+const errorHandler = require('./src/middleware/errorHandler');
 
-//routes
-app.use('/api/auth', auth)
-app.use('/api/user', userRoutes)
+const app = express();
 
-//connect to db
-connectDB().then(() => {
-    const server = app.listen(port, () => {
-        console.log(`Server running on port ${port}`);
-    });
-    process.once('SIGUSR2', () => {
-        server.close(() => process.kill(process.pid, 'SIGUSR2'));
-    });
-    process.on('SIGINT', () => {
-        server.close(() => process.exit(0));
-    });
+// Middleware
+app.use(cors({
+  origin: process.env.CLIENT_ORIGIN || 'http://localhost:5173',
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  credentials: true,
+}));
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+app.use(morgan('dev'));
+
+// Routes
+app.use('/api/auth', authRoutes);
+app.use('/api/user', userRoutes);
+app.use('/api/translation', translationRoutes);
+app.use('/api/tools', translationValidationRoutes);
+
+// Health check
+app.get('/', (req, res) => {
+  res.status(200).send('API is running.');
 });
+
+// Error handling middleware (last before server start)
+app.use(errorHandler);
+
+// Connect to MongoDB and start server
+const PORT = process.env.PORT || 5000;
+
+connectDB()
+  .then(() => {
+    const server = app.listen(PORT, () => {
+      console.log(`🔥 Server running on port ${PORT}`);
+      console.log(`API available at http://localhost:${PORT}/api`);
+    });
+
+    // Graceful shutdown handlers
+    process.once('SIGUSR2', () => {
+      server.close(() => process.kill(process.pid, 'SIGUSR2'));
+    });
+
+    process.on('SIGINT', () => {
+      server.close(() => process.exit(0));
+    });
+  })
+  .catch((error) => {
+    console.error('❌ MongoDB connection error:', error);
+    process.exit(1);
+  });
+
+// Optional: log reset secret for debugging (remove in production)
+console.log('RESET_SECRET:', process.env.RESET_SECRET);
