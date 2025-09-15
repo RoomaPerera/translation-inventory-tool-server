@@ -150,6 +150,9 @@ exports.updateTranslation = async (req, res, next) => {
     }
 };
 
+exports.editTranslationText = async (req, res, next) => {
+};
+
 // Fetch Translations with Filtering and Pagination
 exports.getTranslations = async (req, res, next) => {
     try {

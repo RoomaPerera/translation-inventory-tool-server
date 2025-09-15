@@ -5,9 +5,10 @@ const BlockedIP = require('../models/BlockedIP');
 const jwt = require('jsonwebtoken');
 const nodemailer = require('nodemailer');
 
-const createToken = (id) => jwt.sign({ id }, process.env.JWT_SECRET, { expiresIn: '2h' });
+// const createShortToken = (id) => jwt.sign({ id }, process.env.JWT_SECRET, { expiresIn: '2h' });
 
 const {
+    createToken,
     createShortToken,
     verifyToken
 } = require('../utils/jwt');
@@ -181,6 +182,7 @@ const loginUser = async (req, res) => {
     }
 };
 
+
 /**
  * @route   GET /api/auth/me
  * @desc    Get current user info (verify authentication)
@@ -332,13 +334,13 @@ try {
     if (!user || user.roleStatus !== 'Approved') {
     throw new Error('User not found or not approved');
     }
-
-    const resetToken = createToken(user._id, process.env.RESET_SECRET, '10h');
+    
+    const resetToken = createShortToken(user._id, process.env.RESET_SECRET, '10h');
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
 
     user.resetPasswordToken = resetToken;
     user.resetPasswordOtp = otp;
-    user.resetPasswordExpires = Date.now() + 10 * 60 * 1000; // 10 minutes
+    user.resetPasswordExpires = Date.now() + 600 * 1000; // 10 minutes 
     await user.save({ validateBeforeSave: false });
 
     const transporter = nodemailer.createTransport({
@@ -382,7 +384,9 @@ try {
 };
 const resetPasswordWithToken = async (req, res) => {
 const { otp, newPassword, confirmPassword, token } = req.body;
+
 try {
+    
     if (!token || !otp || !newPassword || !confirmPassword) {
     throw new Error('All fields are required.');
     }
@@ -401,6 +405,13 @@ try {
     user.resetPasswordToken = null;
     user.resetPasswordOtp = null;
     user.resetPasswordExpires = null;
+
+    // Check password strength
+    const emailLocalPart = user.email.split('@')[0];
+    const pwCheck = isStrongPassword(newPassword, emailLocalPart);
+    if (!pwCheck.valid) {
+    throw new Error(pwCheck.message || 'Password is not strong enough.');
+    }
 
     await user.save();
 
@@ -426,6 +437,12 @@ try {
 
     const isMatch = await user.comparePassword(oldPassword);
     if (!isMatch) throw new Error('Incorrect old password.');
+
+    const emailLocalPart = email.split('@')[0];
+    const pwCheck = isStrongPassword(newPassword, emailLocalPart);
+    if (!pwCheck.valid) {
+    throw new Error(pwCheck.message || 'Password is not strong enough.');
+    }
 
     user.password = newPassword; 
     await user.save();

@@ -3,7 +3,7 @@ require('./cron'); // your cron jobs
 
 const connectDB = require('./src/config/db');
 const { port } = require('./src/config/config');
-const { port } = require('./src/config/config');
+
 const app = require('./src/app');
 const http = require('http');
 const scheduleCronJobs = require('./cron');

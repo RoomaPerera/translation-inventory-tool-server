@@ -6,6 +6,8 @@ const errorHandler = require('./middleware/errorMiddleware');
 const requireAuth = require('./middleware/requireAuth');
 const logger = require('./middleware/logger');
 const Scheduler = require('./utils/scheduler');
+const mongoose = require('mongoose');
+const morgan = require('morgan');
 // Import models to register schemas
 require('./models/User');
 require('./models/UserActivity');
@@ -26,9 +28,7 @@ const anomalyRoutes = require('./routes/anomalies');
 const nlpRoutes = require('./routes/nlpRoutes');
 const translationValidationRoutes = require('./routes/translationValidationRoutes');
 
-const requireAuth = require('./middleware/requireAuth');
-const logger = require('./middleware/logger');
-const errorHandler = require('./middleware/errorHandler');
+
 
 // Express app initialization
 const app = express();
@@ -68,6 +68,7 @@ app.use('/api/admin', requireAuth, adminRoutes);
 app.use('/api/developer', requireAuth, developerRoutes);
 app.use('/api/activitylogs', requireAuth, activityLogRoutes);
 app.use('/api/anomalies', requireAuth, anomalyRoutes);
+app.use('/api/translations/revisions', requireAuth, revisionRoutes);
 app.use('/api', fuzzyRoutes); // public in this setup?
 app.use('/api/tools',  translationValidationRoutes);
 
