@@ -130,10 +130,24 @@ const modifyLanguages = async (req, res) => {
             details: { languages: uniqueCodes }
         });
         // Send notification to the translator for each assigned language
-        for (const lang of uniqueCodes) {
-            await notifyLanguageAssignment(user, lang);
+        let notificationStatus = 'success';
+        try {
+            for (const lang of uniqueCodes) {
+                await notifyLanguageAssignment(user, lang);
+            }
+            console.log(`Language assignment notifications sent to: ${user.email}`);
+        } catch (notificationError) {
+            console.error('Language assignment notification error:', notificationError.message);
+            console.error('Full error stack:', notificationError.stack);
+            notificationStatus = 'email_failed';
         }
-        res.status(200).json({ message: 'Languages Updated' });
+        const response = { message: 'Languages Updated', notificationStatus };
+        
+        if (notificationStatus === 'email_failed') {
+            response.warning = 'Languages updated successfully, but email notifications could not be sent.';
+        }
+        
+        res.status(200).json(response);
     } catch (error) {
         res.status(400).json({ error: error.message });
     }

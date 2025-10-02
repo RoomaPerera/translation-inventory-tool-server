@@ -1,6 +1,6 @@
 const Anomaly = require('../models/Anomaly');
 const UserActivity = require('../models/UserActivity');
-const User = require('../models/User');
+const { User } = require('../models/User');
 const anomalyDetector = require('../utils/anomalyDetector');
 
 // Manual trigger for anomaly detection
@@ -105,6 +105,10 @@ const getAnomalyStats = async (req, res) => {
 // Get all anomalies with filtering
 const getAllAnomalies = async (req, res) => {
   try {
+    console.log('=== GET ANOMALIES REQUEST ===');
+    console.log('Query params:', req.query);
+    console.log('User:', req.user?.id, req.user?.role);
+    
     const { 
       page = 1, 
       limit = 10, 
@@ -135,6 +139,9 @@ const getAllAnomalies = async (req, res) => {
       .populate('user', 'name email');
     
     const total = await Anomaly.countDocuments(filter);
+    
+    console.log(`Found ${anomalies.length} anomalies (total: ${total})`);
+    console.log('Filter used:', filter);
     
     res.json({
       success: true,
@@ -255,29 +262,40 @@ const updateAnomaly = async (req, res) => {
 // Mark an anomaly as reviewed
 const markAsReviewed = async (req, res) => {
   try {
-    const anomaly = await Anomaly.findByIdAndUpdate(
-      req.params.id,
-      { reviewed: true },
-      { new: true }
-    );
+    console.log(`🔄 MARK AS REVIEWED: ${req.params.id}`);
+    console.log('User:', req.user?.id, req.user?.role);
     
-    if (!anomaly) {
+    // First check if anomaly exists
+    const existingAnomaly = await Anomaly.findById(req.params.id);
+    if (!existingAnomaly) {
+      console.log(`❌ Anomaly ${req.params.id} not found in database`);
       return res.status(404).json({
         success: false,
         message: 'Anomaly not found'
       });
     }
     
+    console.log(`✅ Found anomaly: ${existingAnomaly.type}, currently reviewed: ${existingAnomaly.reviewed}`);
+    
+    // Update the anomaly
+    const anomaly = await Anomaly.findByIdAndUpdate(
+      req.params.id,
+      { reviewed: true, reviewedAt: new Date() },
+      { new: true }
+    );
+    
+    console.log(`✅ Successfully marked anomaly ${req.params.id} as reviewed`);
+    
     res.json({
       success: true,
-      message: 'Anomaly marked as reviewed',
+      message: 'Anomaly marked as reviewed successfully',
       anomaly
     });
   } catch (error) {
-    console.error('Error marking anomaly as reviewed:', error);
+    console.error('❌ Error marking anomaly as reviewed:', error.message);
     res.status(500).json({
       success: false,
-      message: 'Error updating anomaly',
+      message: 'Database error while updating anomaly',
       error: error.message
     });
   }
@@ -286,24 +304,36 @@ const markAsReviewed = async (req, res) => {
 // Delete an anomaly
 const deleteAnomaly = async (req, res) => {
   try {
-    const anomaly = await Anomaly.findByIdAndDelete(req.params.id);
+    console.log(`🗑️  DELETE ANOMALY: ${req.params.id}`);
+    console.log('User:', req.user?.id, req.user?.role);
     
-    if (!anomaly) {
+    // First check if anomaly exists
+    const existingAnomaly = await Anomaly.findById(req.params.id);
+    if (!existingAnomaly) {
+      console.log(`❌ Anomaly ${req.params.id} not found in database`);
       return res.status(404).json({
         success: false,
         message: 'Anomaly not found'
       });
     }
     
+    console.log(`✅ Found anomaly to delete: ${existingAnomaly.type}, reviewed: ${existingAnomaly.reviewed}`);
+    
+    // Delete the anomaly
+    const deletedAnomaly = await Anomaly.findByIdAndDelete(req.params.id);
+    
+    console.log(`✅ Successfully deleted anomaly ${req.params.id} from database`);
+    
     res.json({
       success: true,
-      message: 'Anomaly deleted successfully'
+      message: 'Anomaly deleted successfully',
+      deletedId: req.params.id
     });
   } catch (error) {
-    console.error('Error deleting anomaly:', error);
+    console.error('❌ Error deleting anomaly:', error.message);
     res.status(500).json({
       success: false,
-      message: 'Error deleting anomaly',
+      message: 'Database error while deleting anomaly',
       error: error.message
     });
   }

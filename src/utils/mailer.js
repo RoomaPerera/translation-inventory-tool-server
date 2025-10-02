@@ -9,19 +9,35 @@ try {
         console.error('Missing SMTP configuration. Please check your .env file.');
         console.error('Required: SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS');
     } else {
-        transporter = nodemailer.createTransport({
-            host: smtp.host,
-            port: smtp.port,
-            secure: smtp.port === 465, // true for 465, false for other ports
-            auth: {
-                user: smtp.user,
-                pass: smtp.pass
-            },
-            // Add timeout settings for better reliability
-            connectionTimeout: 60000, // 60 seconds
-            greetingTimeout: 30000,   // 30 seconds
-            socketTimeout: 60000,     // 60 seconds
-        });
+        // Special configuration for Gmail
+        if (smtp.host.includes('gmail')) {
+            transporter = nodemailer.createTransport({
+                service: 'gmail',
+                auth: {
+                    user: smtp.user,
+                    pass: smtp.pass
+                },
+                // Add timeout settings for better reliability
+                connectionTimeout: 60000, // 60 seconds
+                greetingTimeout: 30000,   // 30 seconds
+                socketTimeout: 60000,     // 60 seconds
+            });
+            console.log('Gmail transporter configured');
+        } else {
+            transporter = nodemailer.createTransport({
+                host: smtp.host,
+                port: smtp.port,
+                secure: smtp.port === 465, // true for 465, false for other ports
+                auth: {
+                    user: smtp.user,
+                    pass: smtp.pass
+                },
+                // Add timeout settings for better reliability
+                connectionTimeout: 60000, // 60 seconds
+                greetingTimeout: 30000,   // 30 seconds
+                socketTimeout: 60000,     // 60 seconds
+            });
+        }
         
         console.log('Email transporter configured successfully');
     }

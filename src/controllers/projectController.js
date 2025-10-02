@@ -3,7 +3,7 @@ const Project = require('../models/Project');
 const { notifyNewProject } = require('../utils/notificationService');
 const ActivityLog = require('../models/ActivityLog');
 const UserActivity = require('../models/UserActivity');
-const User = require('../models/User');
+const { User } = require('../models/User');
 const Language = require('../models/Language');
 const mongoose = require('mongoose');
 
@@ -71,8 +71,10 @@ const addProject = async (req, res) => {
     let notificationStatus = 'success';
     try {
       await notifyNewProject(newProject);
+      console.log(`Project notification sent for project: ${newProject.name}`);
     } catch (notificationError) {
-      console.error('Notification error:', notificationError);
+      console.error('Project notification error:', notificationError.message);
+      console.error('Full error stack:', notificationError.stack);
       notificationStatus = 'email_failed';
     }
     
@@ -97,15 +99,28 @@ const addProject = async (req, res) => {
     try {
       const userId = req.user?.id;
       const userRole = req.user?.role;
+      const userName = req.user?.userName;
+      
       if (userId && userRole) {
-        const user = await User.findById(userId).select('userName');
-        if (user) {
+        if (userName) {
+          // If userName is already available in req.user
           await ActivityLog.create({
             userId,
-            userName: user.userName,
+            userName,
             role: userRole.toLowerCase(),
             description: `Created a new project: ${name}`
           });
+        } else {
+          // Fallback to getting user details if userName is not in req.user
+          const user = await User.findById(userId).select('userName');
+          if (user) {
+            await ActivityLog.create({
+              userId,
+              userName: user.userName,
+              role: userRole.toLowerCase(),
+              description: `Created a new project: ${name}`
+            });
+          }
         }
       }
     } catch (logErr) {
@@ -275,15 +290,60 @@ const assignLanguagesToProject = async (req, res) => {
       console.error('ActivityLog error (assignLanguagesToProject):', logErr);
     }
 
+    // Notify relevant translators about the project language update
+    let notificationStatus = 'success';
+    try {
+      const translators = await User.find({
+        role: 'Translator',
+        roleStatus: 'Approved',
+        languages: { $in: languages }
+      });
+      
+      for (const translator of translators) {
+        try {
+          const { sendMail } = require('../utils/mailer');
+          await sendMail({
+            to: translator.email,
+            subject: 'Project Language Assignment Updated',
+            html: `
+              <h2>Project Language Assignment Updated</h2>
+              <p>Hello ${translator.userName || translator.email},</p>
+              <p>New languages have been assigned to a project that matches your skills:</p>
+              <ul>
+                <li><strong>Project Name:</strong> ${project.name}</li>
+                <li><strong>New Languages:</strong> ${languages.join(', ')}</li>
+                <li><strong>Description:</strong> ${project.description || 'No description provided'}</li>
+              </ul>
+              <p>Please log in to your dashboard to view the updated project details.</p>
+            `
+          });
+          console.log(`Project language assignment notification sent to: ${translator.email}`);
+        } catch (emailError) {
+          console.error(`Failed to send project language assignment email to ${translator.email}:`, emailError.message);
+        }
+      }
+    } catch (notificationError) {
+      console.error('Project language assignment notification error:', notificationError.message);
+      notificationStatus = 'email_failed';
+    }
+
     // Return project with populated default language
     const updatedProject = await Project.findById(project._id)
       .populate('createdBy', 'name email')
       .populate('defaultLanguage', 'name code nativeName');
 
-    res.status(200).json({ 
+    const response = {
       message: 'Languages assigned successfully',
-      project: updatedProject
-    });
+      project: updatedProject,
+      notificationStatus
+    };
+    
+    if (notificationStatus === 'email_failed') {
+      response.warning = 'Languages assigned successfully, but email notifications could not be sent.';
+    }
+
+    res.status(200).json(response);
+  
   } catch (error) {
     console.error('Error assigning languages to project:', error);
     res.status(500).json({ error: error.message });

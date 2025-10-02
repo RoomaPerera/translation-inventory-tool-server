@@ -27,6 +27,9 @@ const activityLogRoutes = require('./routes/activityLogRoutes');
 const anomalyRoutes = require('./routes/anomalies');
 const nlpRoutes = require('./routes/nlpRoutes');
 const translationValidationRoutes = require('./routes/translationValidationRoutes');
+// const debugRoutes = require('./routes/debugRoutes');
+
+// Express app initialization
 
 
 
@@ -37,7 +40,7 @@ const app = express();
 app.use(cors({
     origin: process.env.FRONTEND_URL || 'http://localhost:5173',
     credentials: true,
-    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
     allowedHeaders: [
         'Content-Type',
         'Authorization',
@@ -57,7 +60,7 @@ app.use(morgan('dev'));
 
 app.use(logger);
 
-app.use('/api/activitylogs', require('./routes/activityLogRoutes'));
+// Route removed from here to avoid duplication
 
 app.get('/api/test', (req, res) => {
     res.json({
@@ -81,6 +84,7 @@ app.use('/api/anomalies', requireAuth, anomalyRoutes);
 app.use('/api/fuzzy-search', requireAuth, fuzzyRoutes);
 app.use('/api/analytics', requireAuth, analyticsRoutes);
 app.use('/api/tools', translationValidationRoutes);
+// app.use('/api/debug', debugRoutes);
 
 // Start anomaly detection scheduler
 Scheduler.start();

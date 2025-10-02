@@ -58,7 +58,12 @@ const requireAuth = async (req, res, next) => {
         }
         user.lastActivity = now;
         await user.save();
-        req.user = { id: user._id, role: user.role };
+        req.user = { 
+            id: user._id, 
+            role: user.role,
+            userName: user.userName,
+            roleStatus: user.roleStatus 
+        };
         const newToken = createToken({ id: user._id, role: user.role });
         res.cookie('token', newToken, {
             httpOnly: true,

@@ -1,6 +1,6 @@
 //updateStats.js
 const Project = require('../models/Project');
-const User = require('../models/User');
+const { User } = require('../models/User');
 const Translation = require('../models/Translation');
 
 // Function to update project statistics when translations change

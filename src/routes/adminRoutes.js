@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
-const User = require('../models/User');
+const { User } = require('../controllers/userController');
+const { User: UserModel } = require('../models/User');
 const Language = require('../models/Language');
 
 // // Middleware placeholder — replace with your real auth middleware later

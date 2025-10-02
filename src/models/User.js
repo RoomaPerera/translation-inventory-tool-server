@@ -291,7 +291,7 @@ userSchema.statics.findIdAndRole = async function (id) {
         throw new Error("Invalid user ID");
     }
 
-    const user = await this.findById(id).select('_id role');
+    const user = await this.findById(id).select('_id role userName roleStatus');
     if (!user) {
         throw new Error("User not found");
     }

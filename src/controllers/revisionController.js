@@ -123,7 +123,7 @@ const revertRevision = async (req, res) => {
         // Log the revert action
         try {
             const ActivityLog = require('../models/ActivityLog');
-            const User = require('../models/User');
+            const { User } = require('../models/User');
 
             const user = await User.findById(userId).select('userName role');
             if (user) {

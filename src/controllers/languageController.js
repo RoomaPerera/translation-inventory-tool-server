@@ -1,5 +1,5 @@
 const Language = require('../models/Language');
-const User = require('../models/User');
+const { User } = require('../models/User');
 const mongoose = require('mongoose');
 const { notifyNewLanguage } = require('../utils/notificationService');
 const ActivityLog = require('../models/ActivityLog');
@@ -28,30 +28,61 @@ const addLanguage = async (req, res) => {
         });
 
         await newLanguage.save();
+        
         // Send notification to relevant translators
-        await notifyNewLanguage(newLanguage);
-
-
-    // --- Activity Log: User adds new language ---
-    try {
-      const userId = req.user?.id;
-      const userRole = req.user?.role;
-      if (userId && userRole) {
-        const user = await User.findById(userId).select('userName');
-        if (user) {
-          await ActivityLog.create({
-            userId,
-            userName: user.userName,
-            role: userRole.toLowerCase(),
-            description: `Added a new language: ${name} (${code.toUpperCase()})`
-          });
+        let notificationStatus = 'success';
+        try {
+            await notifyNewLanguage(newLanguage);
+            console.log(`Language notification sent for language: ${newLanguage.name}`);
+        } catch (notificationError) {
+            console.error('Failed to send language notification emails:', notificationError.message);
+            console.error('Full error stack:', notificationError.stack);
+            notificationStatus = 'email_failed';
         }
-      }
-    } catch (logErr) {
+
+        // --- Activity Log: User adds new language ---
+        try {
+          const userId = req.user?.id;
+          const userRole = req.user?.role;
+          const userName = req.user?.userName;
+          
+          if (userId && userRole) {
+            if (userName) {
+              // If userName is already available in req.user
+              await ActivityLog.create({
+                userId,
+                userName,
+                role: userRole.toLowerCase(),
+                description: `Added a new language: ${name} (${code.toUpperCase()})`
+              });
+            } else {
+              // Fallback to getting user details if userName is not in req.user
+              const user = await User.findById(userId).select('userName');
+              if (user) {
+                await ActivityLog.create({
+                  userId,
+                  userName: user.userName,
+                  role: userRole.toLowerCase(),
+                  description: `Added a new language: ${name} (${code.toUpperCase()})`
+                });
+              }
+            }
+          }
+        } catch (logErr) {
       console.error('ActivityLog error (addLanguage):', logErr);
     }
 
-    res.status(201).json({ message: 'Language added successfully.', language: newLanguage });
+    const response = { 
+      message: 'Language added successfully.', 
+      language: newLanguage,
+      notificationStatus 
+    };
+    
+    if (notificationStatus === 'email_failed') {
+      response.warning = 'Language added successfully, but email notifications could not be sent.';
+    }
+
+    res.status(201).json(response);
 
 
     } catch (error) {

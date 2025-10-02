@@ -48,9 +48,4 @@ module.exports = {
         pass: smtpPass
     },
     frontendURL,
-    // Additional simple exports
-    
-    port: process.env.PORT || 5000,
-    mongoURI: process.env.MONGO_URI,
-    
 };

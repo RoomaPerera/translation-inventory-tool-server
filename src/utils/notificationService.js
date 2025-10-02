@@ -1,14 +1,20 @@
 const { sendMail } = require('./mailer');
-const User = require('../models/User');
+const { User } = require('../models/User');
+
+// Add additional error logging and validation
 
 // 1. Notify translators for a new project
 async function notifyNewProject(project) {
   try {
-    console.log('notifyNewProject called with:', project);
+    console.log('notifyNewProject called with:', {
+      name: project?.name,
+      languages: project?.languages,
+      description: project?.description
+    });
     
     if (!project || !project.languages || !Array.isArray(project.languages)) {
-      console.error('Invalid project data for notification:', project);
-      return;
+      console.error(' Invalid project data for notification:', project);
+      throw new Error('Invalid project data provided for notification');
     }
 
     // Find translators who have any of the project languages
@@ -19,8 +25,12 @@ async function notifyNewProject(project) {
     });
     
     console.log(`Found ${translators.length} translators for project: ${project.name}`);
-    console.log('Project languages:', project.languages);
-    console.log('Translators found:', translators.map(t => ({ email: t.email, languages: t.languages })));
+    console.log(' Project languages:', project.languages);
+    console.log('Translators found:', translators.map(t => ({ 
+      email: t.email, 
+      languages: t.languages,
+      roleStatus: t.roleStatus 
+    })));
     
     if (translators.length === 0) {
       console.log('No translators found for project languages:', project.languages);
@@ -44,9 +54,14 @@ async function notifyNewProject(project) {
             <p>Please log in to your dashboard to view the project details.</p>
           `
         });
-        console.log(`Notification sent to: ${translator.email}`);
+        console.log(`Project notification sent to: ${translator.email}`);
       } catch (emailError) {
-        console.error(`Failed to send email to ${translator.email}:`, emailError.message);
+        console.error(`Failed to send project email to ${translator.email}:`, emailError.message);
+        console.error('Email error details:', {
+          code: emailError.code,
+          command: emailError.command,
+          response: emailError.response
+        });
         // Continue with other translators even if one fails
       }
     }
@@ -61,6 +76,12 @@ async function notifyNewProject(project) {
 async function notifyNewLanguage(language) {
   try {
     console.log('notifyNewLanguage called with:', language);
+    console.log('SMTP Settings used:', {
+      host: process.env.SMTP_HOST,
+      port: process.env.SMTP_PORT,
+      user: process.env.SMTP_USER,
+      pass: process.env.SMTP_PASS ? '(set)' : '(not set)'
+    });
     
     if (!language || !language.code) {
       console.error('Invalid language data for notification:', language);

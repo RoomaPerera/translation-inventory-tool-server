@@ -1,9 +1,10 @@
 // controllers/translationController.js
 
 const Translation = require('../models/Translation');
+const ActivityLog = require('../models/ActivityLog');
 const { notifyNewTranslation } = require('../utils/notificationService');
 const UserActivity = require('../models/UserActivity');
-const User = require('../models/User');
+const { User } = require('../models/User');
 const TranslationCheckResult = require('../models/TranslationCheckResult');
 const mockQualityScore = require('../utils/mockQualityScore'); // ✅ added
 const  detectLanguageSimple = require('../utils/detectLanguagecolls'); // ✅ added
@@ -32,7 +33,13 @@ exports.addTranslation = async (req, res, next) => {
 
         // Send notification to relevant translators only if there's actual text
         if (translatedText && translatedText.trim() !== '') {
-            await notifyNewTranslation({ language: normalizedLanguage, text: translatedText });
+            try {
+                await notifyNewTranslation({ language: normalizedLanguage, text: translatedText });
+                console.log(`Translation notification sent for language: ${normalizedLanguage}`);
+            } catch (notificationError) {
+                console.error(`Failed to send translation notification: ${notificationError.message}`);
+                // Continue even if notification fails
+            }
         }
         
         // --- UserActivity Log: For anomaly detection ---
@@ -56,15 +63,28 @@ exports.addTranslation = async (req, res, next) => {
         try {
             const userId = req.user?.id;
             const userRole = req.user?.role;
+            const userName = req.user?.userName;
+            
             if (userId && userRole) {
-                const user = await User.findById(userId).select('userName');
-                if (user) {
+                if (userName) {
+                    // If userName is already available in req.user
                     await ActivityLog.create({
                         userId,
-                        userName: user.userName,
+                        userName,
                         role: userRole.toLowerCase(),
                         description: `Added a new translation for key: ${translationKey} in language: ${normalizedLanguage}`
                     });
+                } else {
+                    // Fallback to getting user details if userName is not in req.user
+                    const user = await User.findById(userId).select('userName');
+                    if (user) {
+                        await ActivityLog.create({
+                            userId,
+                            userName: user.userName,
+                            role: userRole.toLowerCase(),
+                            description: `Added a new translation for key: ${translationKey} in language: ${normalizedLanguage}`
+                        });
+                    }
                 }
             }
         } catch (logErr) {
